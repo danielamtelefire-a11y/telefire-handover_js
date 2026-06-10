@@ -54,6 +54,12 @@
 
   <span class="form-badge">📋 טופס 01 / 03</span>
 
+  <!-- Free navigation between forms (drafts are saved automatically) -->
+  <div class="skip-nav">
+    <a href="form2-warranty.html" class="skip-nav-btn">⏭️ דלג לתעודת אחריות</a>
+    <a href="form3-service.html" class="skip-nav-btn">⏭️ דלג למסירה לשירות</a>
+  </div>
+
   <form id="tfForm">
 
     <!-- ===== PROJECT DETAILS ===== -->
@@ -197,9 +203,11 @@
 <script src="shared/theme.js"></script>
 <script src="shared/signature-pad.js"></script>
 <script src="shared/pdf-generator.js"></script>
+<script src="shared/validators.js"></script>
 
-<!-- jsPDF library (required by pdf-generator.js) -->
+<!-- PDF libraries (required by pdf-generator.js) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
 <script>
 // ============================================
@@ -222,6 +230,15 @@ TF_prefillShared(['project_number', 'project_name', 'customer_name', 'handover_d
   if (r1 && !r1.value && shared.receiver_name) r1.value = shared.receiver_name;
 })();
 
+// 3b. Restore draft (saved fields from previous visit) + start autosave
+const FORM_TYPE = 'fire-system';
+const formEl = document.getElementById('tfForm');
+TF_restoreForm(FORM_TYPE);
+TF_autosaveForm(FORM_TYPE, formEl);
+
+// 3c. Attach live validators (Israeli ID + names)
+TF_initValidators();
+
 // 4. Submit
 const WEBHOOK_URL = 'https://hook.eu2.make.com/REPLACE_WITH_YOUR_HANDOVER_WEBHOOK';
 let lastPayload = null;
@@ -230,6 +247,13 @@ document.getElementById('tfForm').addEventListener('submit', async e => {
   e.preventDefault();
   const form = e.target;
   if (!form.checkValidity()) { form.reportValidity(); return; }
+
+  // Validate names + IDs (Israeli check digit)
+  const validation = TF_validateForm(form);
+  if (!validation.valid) {
+    TF_toast(validation.errors[0]);
+    return;
+  }
 
   // Required signatures
   const missing = [];
@@ -271,6 +295,7 @@ document.getElementById('tfForm').addEventListener('submit', async e => {
     }
 
     TF_markSubmitted('fire-system');
+    TF_clearFormDraft(FORM_TYPE);
     lastPayload = payload;
 
     document.getElementById('successBanner').classList.add('show');
