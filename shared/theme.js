@@ -131,6 +131,79 @@
   };
 
   // ============================================================
+  // 3b. FORM DRAFTS (full form autosave across navigation)
+  //     Saves EVERY field in the form (text, select, radio, checkbox)
+  //     so users can move between forms freely without losing data.
+  //     Signatures (canvas) are NOT saved - too large for storage.
+  // ============================================================
+
+  const DRAFT_PREFIX = 'tf_handover_draft_';
+
+  /**
+   * Restores all saved field values into the form.
+   * Call AFTER TF_prefillShared so drafts take priority.
+   * @param {string} formType - unique form key e.g. 'fire-system'
+   */
+  window.TF_restoreForm = function(formType) {
+    let draft;
+    try { draft = JSON.parse(sessionStorage.getItem(DRAFT_PREFIX + formType) || '{}'); }
+    catch (_) { return; }
+
+    Object.keys(draft).forEach(name => {
+      const value = draft[name];
+      const els = document.querySelectorAll(`[name="${name}"]`);
+      els.forEach(el => {
+        if (el.type === 'radio') {
+          el.checked = (el.value === value);
+          if (el.checked) el.dispatchEvent(new Event('change', { bubbles: true }));
+        } else if (el.type === 'checkbox') {
+          el.checked = !!value;
+        } else {
+          el.value = value;
+          // Trigger change so dependent UI (model banner, warranty calc) updates
+          el.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+      });
+    });
+  };
+
+  /**
+   * Watches all form fields and saves them to sessionStorage on change.
+   * @param {string} formType - unique form key e.g. 'fire-system'
+   * @param {HTMLFormElement} form - the form element to watch
+   */
+  window.TF_autosaveForm = function(formType, form) {
+    if (!form) return;
+    const key = DRAFT_PREFIX + formType;
+
+    const save = () => {
+      const draft = {};
+      form.querySelectorAll('input, select, textarea').forEach(el => {
+        if (!el.name) return;
+        if (el.type === 'radio') {
+          if (el.checked) draft[el.name] = el.value;
+        } else if (el.type === 'checkbox') {
+          draft[el.name] = el.checked;
+        } else {
+          draft[el.name] = el.value;
+        }
+      });
+      try { sessionStorage.setItem(key, JSON.stringify(draft)); } catch (_) {}
+    };
+
+    form.addEventListener('input', save);
+    form.addEventListener('change', save);
+  };
+
+  /**
+   * Clears the saved draft for a form (call after successful submit).
+   * @param {string} formType
+   */
+  window.TF_clearFormDraft = function(formType) {
+    try { sessionStorage.removeItem(DRAFT_PREFIX + formType); } catch (_) {}
+  };
+
+  // ============================================================
   // 4. TOAST NOTIFICATIONS
   //    Expects an element with id="toast" in the page.
   //    Types: '' (red/error default), 'success' (green)
