@@ -309,6 +309,12 @@ select.select-model {
     </div>
   </div>
 
+  <!-- Free navigation between forms (drafts are saved automatically) -->
+  <div class="skip-nav">
+    <a href="form1-fire-system.html" class="skip-nav-btn">⏮️ דלג למסירת גילוי אש</a>
+    <a href="form3-service.html" class="skip-nav-btn">⏭️ דלג למסירה לשירות</a>
+  </div>
+
   <!-- ===== CERTIFICATE BANNER ===== -->
   <div class="certificate-banner">
     <div class="cert-content">
@@ -540,11 +546,13 @@ select.select-model {
 <!-- Libraries -->
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
 <!-- Shared scripts -->
 <script src="shared/theme.js"></script>
 <script src="shared/signature-pad.js"></script>
 <script src="shared/pdf-generator.js"></script>
+<script src="shared/validators.js"></script>
 
 <script>
 // ============================================
@@ -562,6 +570,15 @@ TF_prefillShared(['customer_name', 'handover_date', 'deliverer_name']);
   const r1 = document.querySelector('[name="receiver1_name"]');
   if (r1 && !r1.value && shared.receiver_name) r1.value = shared.receiver_name;
 })();
+
+// 2b. Restore draft + autosave (free navigation without losing data)
+const FORM_TYPE = 'warranty';
+const formEl = document.getElementById('tfForm');
+TF_restoreForm(FORM_TYPE);
+TF_autosaveForm(FORM_TYPE, formEl);
+
+// 2c. Live validators (Israeli ID + names)
+TF_initValidators();
 
 // 3. Model selector -> updates banner + header
 const panelModel = document.getElementById('panelModel');
@@ -777,6 +794,13 @@ document.getElementById('tfForm').addEventListener('submit', async e => {
   const form = e.target;
   if (!form.checkValidity()) { form.reportValidity(); return; }
 
+  // Validate names + IDs (Israeli check digit)
+  const validation = TF_validateForm(form);
+  if (!validation.valid) {
+    TF_toast(validation.errors[0]);
+    return;
+  }
+
   const missing = [];
   if (pads.receiver1.isEmpty()) missing.push('מקבל ראשי');
   if (pads.deliverer.isEmpty()) missing.push('מוסר');
@@ -816,6 +840,7 @@ document.getElementById('tfForm').addEventListener('submit', async e => {
     }
 
     TF_markSubmitted('warranty');
+    TF_clearFormDraft(FORM_TYPE);
     lastPayload = payload;
 
     document.getElementById('successBanner').classList.add('show');
