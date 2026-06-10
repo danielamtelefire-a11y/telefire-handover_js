@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>מסירת מערכת גילוי אש | טלפייר</title>
+
+<!-- Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+
+<!-- Shared styles -->
+<link rel="stylesheet" href="shared/styles.css">
+</head>
+<body>
+
+<div class="app app--narrow">
+
+  <!-- ===== HEADER ===== -->
+  <header class="header">
+    <div class="brand">
+      <div class="brand-logo">
+        <img src="shared/telefire-logo.png" alt="Telefire">
+      </div>
+      <div class="brand-text">
+        <div class="name">מסירת מערכת גילוי אש</div>
+        <div class="tagline">כריזה וטלפון כבאים</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <a href="index.html" class="back-btn">← חזרה</a>
+      <button class="theme-toggle" id="themeToggle" aria-label="החלף תצוגה">
+        <span id="themeIcon">🌙</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ===== SUCCESS BANNER ===== -->
+  <div class="success-banner" id="successBanner">
+    <div class="banner-top">
+      <div class="banner-check">✓</div>
+      <div class="banner-text">
+        <div class="banner-title">הטופס נשלח בהצלחה</div>
+        <div class="banner-subtitle">בחר את הפעולה הבאה</div>
+      </div>
+    </div>
+    <div class="banner-actions">
+      <button type="button" class="banner-btn" id="downloadPdfBtn">📄 הורדת PDF מסכם</button>
+      <a href="form2-warranty.html" class="banner-btn">המשך לטופס הבא ←</a>
+      <a href="index.html" class="banner-btn banner-btn-ghost">חזרה לדף הראשי</a>
+    </div>
+  </div>
+
+  <span class="form-badge">📋 טופס 01 / 03</span>
+
+  <form id="tfForm">
+
+    <!-- ===== PROJECT DETAILS ===== -->
+    <section class="card">
+      <div class="card-title">פרטי הפרויקט</div>
+      <div class="fields">
+        <div class="field">
+          <label>שם הפרויקט <span class="req">*</span></label>
+          <input class="input" type="text" name="project_name" required>
+        </div>
+        <div class="field">
+          <label>מס' הפרויקט <span class="req">*</span></label>
+          <input class="input input-mono" type="text" name="project_number" required>
+        </div>
+        <div class="field">
+          <label>שם החברה / המוסד <span class="req">*</span></label>
+          <input class="input" type="text" name="customer_name" required>
+        </div>
+        <div class="field">
+          <label>תאריך מסירה <span class="req">*</span></label>
+          <input class="input" type="date" name="handover_date" required>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== DECLARATION ===== -->
+    <section class="card">
+      <div class="card-title">הצהרת קבלה והערות</div>
+
+      <div class="declaration">
+        <div class="declaration-title">
+          <span>📜</span><span>תוכן ההצהרה</span>
+        </div>
+        <p>הנני מאשר קבלת הפרויקט לאחר ביקורת. כל רשימת ההערות והליקויים אשר מופיע מטה תתוקן בהתאם להסכם האחריות שנקבע בינינו.</p>
+        <p>נמסרו תיקי מערכת ודוח מכון התקנים במידה ונדרש.</p>
+        <p>תקופת האחריות שנקבעה על פי החוזה ותיק מתקן מתחילה ביום חתימה על מסמך זה.</p>
+      </div>
+
+      <div class="field">
+        <label>הערות וליקויים</label>
+        <textarea class="input textarea" name="notes" rows="4" placeholder="פרט הערות, ליקויים שיש לתקן, או הערות אחרות..."></textarea>
+      </div>
+    </section>
+
+    <!-- ===== SIGNATURES ===== -->
+    <section class="card">
+      <div class="card-title">חתימות</div>
+
+      <!-- Receiver 1 (required) -->
+      <div class="signature-section">
+        <span class="signature-label">
+          <span>✍️</span>
+          <span>מקבל ראשי</span>
+        </span>
+        <div class="fields">
+          <div class="field">
+            <label>שם המקבל <span class="req">*</span></label>
+            <input class="input" type="text" name="receiver1_name" required>
+          </div>
+          <div class="field">
+            <label>ת.ז</label>
+            <input class="input input-mono" type="text" name="receiver1_id" inputmode="numeric">
+          </div>
+        </div>
+        <div class="signature-pad-wrap">
+          <div class="pad-title">
+            <span>חתימה</span>
+            <button class="signature-clear" data-target="receiver1" type="button">נקה חתימה</button>
+          </div>
+          <div class="signature-pad" data-name="receiver1"><span class="signature-placeholder">✒️ חתום כאן</span></div>
+        </div>
+      </div>
+
+      <!-- Receiver 2 (optional) -->
+      <div class="signature-section">
+        <span class="signature-label">
+          <span>✍️</span>
+          <span>מקבל שני</span>
+          <span class="optional">(אופציונלי)</span>
+        </span>
+        <div class="fields">
+          <div class="field">
+            <label>שם המקבל</label>
+            <input class="input" type="text" name="receiver2_name">
+          </div>
+          <div class="field">
+            <label>ת.ז</label>
+            <input class="input input-mono" type="text" name="receiver2_id" inputmode="numeric">
+          </div>
+        </div>
+        <div class="signature-pad-wrap">
+          <div class="pad-title">
+            <span>חתימה</span>
+            <button class="signature-clear" data-target="receiver2" type="button">נקה חתימה</button>
+          </div>
+          <div class="signature-pad" data-name="receiver2"><span class="signature-placeholder">✒️ חתום כאן (לא חובה)</span></div>
+        </div>
+      </div>
+
+      <!-- Deliverer (required) -->
+      <div class="signature-section">
+        <span class="signature-label">
+          <span>🛡️</span>
+          <span>מוסר (נציג טלפייר)</span>
+        </span>
+        <div class="fields-1">
+          <div class="field">
+            <label>שם המוסר <span class="req">*</span></label>
+            <input class="input" type="text" name="deliverer_name" required>
+          </div>
+        </div>
+        <div class="signature-pad-wrap">
+          <div class="pad-title">
+            <span>חתימה</span>
+            <button class="signature-clear" data-target="deliverer" type="button">נקה חתימה</button>
+          </div>
+          <div class="signature-pad" data-name="deliverer"><span class="signature-placeholder">✒️ חתום כאן</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== SUBMIT BAR ===== -->
+    <div class="submit-bar">
+      <div class="submit-summary">
+        <span>📝</span>
+        <span>השלם את החתימות ולחץ <strong>שלח</strong></span>
+      </div>
+      <div style="display:flex; gap:10px;">
+        <button type="button" class="btn btn-secondary" onclick="window.print()">🖨️ הדפסה</button>
+        <button type="submit" class="btn btn-primary">שליחת טופס →</button>
+      </div>
+    </div>
+
+  </form>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- Shared scripts -->
+<script src="shared/theme.js"></script>
+<script src="shared/signature-pad.js"></script>
+<script src="shared/pdf-generator.js"></script>
+
+<!-- jsPDF library (required by pdf-generator.js) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<script>
+// ============================================
+// PAGE LOGIC - Form 1: Fire System Handover
+// ============================================
+
+// 1. Theme
+TF_initTheme();
+
+// 2. Signature pads
+const pads = TF_initSignatures();
+
+// 3. Prefill shared fields from landing page
+TF_prefillShared(['project_number', 'project_name', 'customer_name', 'handover_date', 'deliverer_name']);
+
+// receiver1_name gets the shared receiver_name
+(function() {
+  const shared = TF_getShared();
+  const r1 = document.querySelector('[name="receiver1_name"]');
+  if (r1 && !r1.value && shared.receiver_name) r1.value = shared.receiver_name;
+})();
+
+// 4. Submit
+const WEBHOOK_URL = 'https://hook.eu2.make.com/REPLACE_WITH_YOUR_HANDOVER_WEBHOOK';
+let lastPayload = null;
+
+document.getElementById('tfForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const form = e.target;
+  if (!form.checkValidity()) { form.reportValidity(); return; }
+
+  // Required signatures
+  const missing = [];
+  if (pads.receiver1.isEmpty()) missing.push('מקבל ראשי');
+  if (pads.deliverer.isEmpty()) missing.push('מוסר');
+  if (missing.length) {
+    TF_toast('יש להוסיף חתימות חובה: ' + missing.join(', '));
+    return;
+  }
+
+  // Collect form data
+  const data = {};
+  new FormData(form).forEach((v, k) => { data[k] = v; });
+  data.signatures = {
+    receiver1: pads.receiver1.toDataURL(),
+    receiver2: pads.receiver2.toDataURL(),
+    deliverer: pads.deliverer.toDataURL()
+  };
+
+  const payload = {
+    form_type: 'fire-system',
+    submitted_at: new Date().toISOString(),
+    data: data
+  };
+
+  const btn = e.submitter;
+  if (btn) btn.disabled = true;
+
+  try {
+    if (WEBHOOK_URL.includes('REPLACE_WITH')) {
+      console.log('[Dry run] Payload:', payload);
+    } else {
+      const res = await fetch(WEBHOOK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+    }
+
+    TF_markSubmitted('fire-system');
+    lastPayload = payload;
+
+    document.getElementById('successBanner').classList.add('show');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  } catch (err) {
+    console.error(err);
+    TF_toast('שגיאה בשליחה - נסה שוב');
+    if (btn) btn.disabled = false;
+  }
+});
+
+// 5. PDF download
+document.getElementById('downloadPdfBtn').addEventListener('click', () => {
+  if (!lastPayload) { TF_toast('אין נתונים ליצירת PDF'); return; }
+  const d = lastPayload.data;
+
+  const ok = TF_generatePDF({
+    title: 'טופס מסירת מערכת גילוי אש',
+    formNumber: '01 / 03',
+    filename: 'Telefire_FireSystem_' + (d.project_number || 'handover') + '.pdf',
+    sections: [
+      {
+        title: 'פרטי הפרויקט',
+        rows: [
+          ['שם הפרויקט:', d.project_name],
+          ['מס\' הפרויקט:', d.project_number],
+          ['שם הלקוח:', d.customer_name],
+          ['תאריך מסירה:', d.handover_date]
+        ]
+      },
+      {
+        title: 'הצהרת קבלה',
+        paragraphs: [
+          'הנני מאשר קבלת הפרויקט לאחר ביקורת. כל ההערות והליקויים יתוקנו בהתאם להסכם האחריות.',
+          'נמסרו תיקי מערכת ודוח מכון התקנים במידה ונדרש.',
+          'תקופת האחריות מתחילה ביום חתימה על מסמך זה.'
+        ]
+      },
+      {
+        title: 'הערות וליקויים',
+        paragraphs: [d.notes || 'אין הערות']
+      }
+    ],
+    signatures: [
+      { label: 'מקבל ראשי', name: d.receiver1_name, id: d.receiver1_id, image: d.signatures.receiver1 },
+      { label: 'מקבל שני', name: d.receiver2_name, id: d.receiver2_id, image: d.signatures.receiver2 },
+      { label: 'מוסר (נציג טלפייר)', name: d.deliverer_name, id: '', image: d.signatures.deliverer }
+    ]
+  });
+
+  if (ok) TF_toast('PDF נוצר בהצלחה ✓', 'success');
+  else TF_toast('שגיאה ביצירת PDF');
+});
+</script>
+
+</body>
+</html>
