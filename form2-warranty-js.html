@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>תעודת אחריות | טלפייר</title>
+
+<!-- Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+
+<!-- Shared styles -->
+<link rel="stylesheet" href="shared/styles.css">
+
+<!-- Page-specific styles (certificate banner, scanner, terms) -->
+<style>
+/* ===== CERTIFICATE BANNER ===== */
+.certificate-banner {
+  background: linear-gradient(135deg, var(--tf-navy) 0%, #2A4173 50%, var(--tf-navy) 100%);
+  border-radius: var(--radius);
+  padding: 28px 32px;
+  margin-bottom: 24px;
+  position: relative;
+  overflow: hidden;
+  color: white;
+  box-shadow: var(--shadow);
+}
+.certificate-banner::before {
+  content: ''; position: absolute;
+  top: -30%; right: -10%;
+  width: 280px; height: 280px;
+  background: radial-gradient(circle, rgba(204,33,40,0.2), transparent 70%);
+  pointer-events: none;
+}
+.certificate-banner::after {
+  content: ''; position: absolute;
+  bottom: -50%; left: -10%;
+  width: 280px; height: 280px;
+  background: radial-gradient(circle, rgba(109,170,220,0.15), transparent 70%);
+  pointer-events: none;
+}
+.cert-content { position: relative; z-index: 1; }
+.cert-eyebrow {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 11px; font-weight: 700;
+  letter-spacing: 2px; text-transform: uppercase;
+  opacity: 0.8; margin-bottom: 12px;
+  padding: 4px 12px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 20px;
+  border: 1px solid rgba(255,255,255,0.18);
+}
+.cert-title { font-size: 32px; font-weight: 800; letter-spacing: -0.5px; line-height: 1.15; margin-bottom: 8px; }
+.cert-subtitle { font-size: 14px; opacity: 0.85; }
+.cert-model {
+  display: inline-block;
+  margin-top: 16px;
+  padding: 8px 18px;
+  background: rgba(204,33,40,0.85);
+  border-radius: 8px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 20px; font-weight: 700; letter-spacing: 2px;
+  box-shadow: 0 4px 12px rgba(204,33,40,0.35);
+}
+
+/* ===== MODEL SELECT ===== */
+select.select-model {
+  appearance: none; -webkit-appearance: none;
+  padding-left: 40px;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'%3e%3cpath d='M1 1.5L6 6.5L11 1.5' stroke='%2364748B' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: left 14px center;
+  cursor: pointer;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+[data-theme="dark"] select.select-model {
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'%3e%3cpath d='M1 1.5L6 6.5L11 1.5' stroke='%2394A8C4' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3e%3c/svg%3e");
+}
+
+/* ===== WARRANTY PERIOD BOX ===== */
+.warranty-period {
+  background: linear-gradient(135deg, rgba(109,170,220,0.1) 0%, rgba(23,43,84,0.04) 100%);
+  border: 1px solid rgba(109,170,220,0.3);
+  border-right: 4px solid var(--tf-teal);
+  border-radius: var(--radius-sm);
+  padding: 18px 20px;
+  margin-top: 18px;
+  display: flex; align-items: center; gap: 14px;
+}
+[data-theme="dark"] .warranty-period {
+  background: linear-gradient(135deg, rgba(109,170,220,0.15) 0%, rgba(23,43,84,0.25) 100%);
+}
+.warranty-icon {
+  width: 48px; height: 48px;
+  border-radius: 12px;
+  background: rgba(109,170,220,0.2);
+  color: var(--tf-teal);
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 24px; flex-shrink: 0;
+}
+.warranty-text { flex: 1; }
+.warranty-text .label {
+  font-size: 11px; font-weight: 700;
+  color: var(--tf-teal);
+  letter-spacing: 1px; text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.warranty-text .value { font-size: 14px; color: var(--text); }
+.warranty-text .duration { font-weight: 700; color: var(--tf-navy); }
+[data-theme="dark"] .warranty-text .duration { color: var(--tf-teal); }
+
+/* ===== TERMS ACCORDION ===== */
+.terms-toggle {
+  display: flex; align-items: center; justify-content: space-between;
+  width: 100%;
+  padding: 14px 18px;
+  background: var(--input-bg-soft);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-family: inherit; font-size: 14px; font-weight: 600;
+  color: var(--text);
+  transition: all 0.15s;
+}
+.terms-toggle:hover { border-color: var(--tf-teal); background: var(--card); }
+.terms-toggle .icon-left { display: flex; align-items: center; gap: 10px; color: var(--tf-red); }
+.terms-toggle .chevron { transition: transform 0.2s; color: var(--text-muted); }
+.terms-toggle[aria-expanded="true"] .chevron { transform: rotate(180deg); }
+.terms-content { max-height: 0; overflow: hidden; transition: max-height 0.3s ease; }
+.terms-content.open { max-height: 2000px; }
+.terms-inner {
+  padding: 20px 22px;
+  margin-top: 12px;
+  background: var(--input-bg-soft);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 13px; line-height: 1.75;
+}
+.terms-inner ol { padding-right: 22px; margin: 0; color: var(--text); }
+.terms-inner ol > li { margin-bottom: 10px; }
+.terms-inner ol ol { margin-top: 8px; padding-right: 18px; }
+.terms-inner ol ol > li { margin-bottom: 4px; color: var(--text-muted); font-size: 12.5px; }
+
+/* ===== SCAN BUTTON + MODAL ===== */
+.input-with-scan { position: relative; display: flex; align-items: stretch; }
+.input-with-scan .input { padding-left: 56px; }
+.scan-btn {
+  position: absolute;
+  left: 6px; top: 50%;
+  transform: translateY(-50%);
+  width: 40px; height: 40px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--tf-navy) 0%, #2A4173 100%);
+  color: white; border: none; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: all 0.15s;
+  box-shadow: 0 2px 6px rgba(23,43,84,0.25);
+}
+.scan-btn:hover { transform: translateY(-50%) scale(1.05); box-shadow: 0 4px 10px rgba(23,43,84,0.4); }
+.scan-btn svg { width: 20px; height: 20px; }
+[data-theme="dark"] .scan-btn {
+  background: linear-gradient(135deg, var(--tf-teal) 0%, #4A8FC4 100%);
+  color: var(--bg);
+}
+.scanner-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.85);
+  backdrop-filter: blur(8px);
+  z-index: 999;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.25s;
+}
+.scanner-overlay.show { opacity: 1; pointer-events: auto; }
+.scanner-modal {
+  position: fixed; top: 50%; left: 50%;
+  transform: translate(-50%, -50%) scale(0.95);
+  width: min(440px, 92vw);
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  z-index: 1000;
+  opacity: 0; pointer-events: none;
+  transition: all 0.25s;
+  overflow: hidden;
+}
+.scanner-modal.show { opacity: 1; pointer-events: auto; transform: translate(-50%, -50%) scale(1); }
+.scanner-header {
+  padding: 18px 22px;
+  background: linear-gradient(135deg, var(--tf-navy) 0%, #2A4173 100%);
+  color: white;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+}
+.scanner-title { display: flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 700; }
+.scanner-close {
+  width: 32px; height: 32px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.15);
+  border: none; color: white;
+  font-size: 20px; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: background 0.15s;
+}
+.scanner-close:hover { background: rgba(255,255,255,0.28); }
+.scanner-body { padding: 20px; }
+.scanner-tabs {
+  display: flex; gap: 4px;
+  background: var(--input-bg-soft);
+  padding: 4px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+.scanner-tab {
+  flex: 1;
+  padding: 8px 12px;
+  background: transparent; border: none;
+  border-radius: 6px;
+  font-family: inherit; font-size: 13px; font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+}
+.scanner-tab.active { background: var(--card); color: var(--tf-red); box-shadow: var(--shadow-sm); }
+#scannerView {
+  background: black;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  min-height: 260px;
+  display: flex; align-items: center; justify-content: center;
+  position: relative;
+}
+#scannerView video { width: 100%; border-radius: var(--radius-sm); }
+#scannerView .loading { color: #94A3B8; font-size: 13px; text-align: center; padding: 40px 20px; }
+.upload-zone {
+  border: 2px dashed var(--border-strong);
+  border-radius: var(--radius-sm);
+  padding: 32px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.15s;
+  background: var(--input-bg-soft);
+  display: block;
+}
+.upload-zone:hover { border-color: var(--tf-teal); background: var(--card); }
+.upload-zone .upload-icon { font-size: 36px; margin-bottom: 8px; }
+.upload-zone .upload-text { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+.upload-zone .upload-hint { font-size: 12px; color: var(--text-muted); }
+.scanner-hint {
+  margin-top: 14px;
+  padding: 10px 14px;
+  background: rgba(109,170,220,0.08);
+  border-right: 3px solid var(--tf-teal);
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+.scan-error {
+  margin-top: 12px;
+  padding: 10px 14px;
+  background: rgba(204,33,40,0.08);
+  border-right: 3px solid var(--tf-red);
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--tf-red);
+  display: none;
+}
+.scan-error.show { display: block; }
+</style>
+</head>
+<body>
+
+<div class="app app--narrow">
+
+  <!-- ===== HEADER ===== -->
+  <header class="header">
+    <div class="brand">
+      <div class="brand-logo">
+        <img src="shared/telefire-logo.png" alt="Telefire">
+      </div>
+      <div class="brand-text">
+        <div class="name">תעודת אחריות</div>
+        <div class="tagline" id="headerTagline">לוח בקרה ADR-7000</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <a href="index.html" class="back-btn">← חזרה</a>
+      <button class="theme-toggle" id="themeToggle" aria-label="החלף תצוגה">
+        <span id="themeIcon">🌙</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ===== SUCCESS BANNER ===== -->
+  <div class="success-banner" id="successBanner">
+    <div class="banner-top">
+      <div class="banner-check">✓</div>
+      <div class="banner-text">
+        <div class="banner-title">תעודת האחריות נשלחה</div>
+        <div class="banner-subtitle">בחר את הפעולה הבאה</div>
+      </div>
+    </div>
+    <div class="banner-actions">
+      <button type="button" class="banner-btn" id="downloadPdfBtn">📄 הורדת PDF מסכם</button>
+      <a href="form3-service.html" class="banner-btn">המשך לטופס הבא ←</a>
+      <a href="index.html" class="banner-btn banner-btn-ghost">חזרה לדף הראשי</a>
+    </div>
+  </div>
+
+  <!-- ===== CERTIFICATE BANNER ===== -->
+  <div class="certificate-banner">
+    <div class="cert-content">
+      <span class="cert-eyebrow">🛡️ Warranty Certificate · טופס 02 / 03</span>
+      <div class="cert-title">תעודת אחריות</div>
+      <div class="cert-subtitle">מערכת גילוי אש, ניהול עשן וכריזת חירום</div>
+      <div class="cert-model" id="certModel">ADR-7000</div>
+    </div>
+  </div>
+
+  <form id="tfForm">
+
+    <!-- ===== PANEL & CUSTOMER ===== -->
+    <section class="card">
+      <div class="card-title">פרטי הלוח והלקוח</div>
+      <div class="fields">
+        <div class="field">
+          <label>דגם לוח הבקרה <span class="req">*</span></label>
+          <select class="input input-mono select-model" name="panel_model" id="panelModel" required>
+            <option value="GUARD-7">GUARD-7</option>
+            <option value="TSA-200">TSA-200</option>
+            <option value="TSA-1000">TSA-1000</option>
+            <option value="ADR-7000" selected>ADR-7000</option>
+            <option value="SAVER-V">SAVER-V</option>
+            <option value="SAVER-7000">SAVER-7000</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>מס' סידורי <span class="req">*</span></label>
+          <div class="input-with-scan">
+            <input class="input input-mono" type="text" name="serial_number" id="serialNumber" required placeholder="7K-2026-0314">
+            <button type="button" class="scan-btn" id="scanBtn" title="סרוק ברקוד / QR" aria-label="סרוק ברקוד">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 7V5a2 2 0 0 1 2-2h2"/>
+                <path d="M17 3h2a2 2 0 0 1 2 2v2"/>
+                <path d="M21 17v2a2 2 0 0 1-2 2h-2"/>
+                <path d="M7 21H5a2 2 0 0 1-2-2v-2"/>
+                <rect x="7" y="7" width="10" height="10" rx="1"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div class="field">
+          <label>שם הלקוח <span class="req">*</span></label>
+          <input class="input" type="text" name="customer_name" required>
+        </div>
+        <div class="field">
+          <label>עיר</label>
+          <input class="input" type="text" name="customer_city">
+        </div>
+        <div class="field field--full">
+          <label>טלפון</label>
+          <input class="input input-mono" type="tel" name="customer_phone" dir="ltr" style="text-align:right;" placeholder="03-1234567">
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== WARRANTY PERIOD ===== -->
+    <section class="card">
+      <div class="card-title">תוקף האחריות</div>
+      <div class="fields">
+        <div class="field">
+          <label>תאריך מסירה <span class="req">*</span></label>
+          <input class="input" type="date" name="handover_date" id="handoverDate" required>
+        </div>
+        <div class="field">
+          <label>תום אחריות <span class="req">*</span></label>
+          <input class="input" type="date" name="warranty_end" id="warrantyEnd" required>
+          <span class="field-hint">✨ מחושב אוטומטית: 12 חודשים</span>
+        </div>
+      </div>
+
+      <div class="warranty-period">
+        <div class="warranty-icon">🛡️</div>
+        <div class="warranty-text">
+          <div class="label">תקופת אחריות</div>
+          <div class="value">
+            תקופת האחריות היא <span class="duration" id="warrantyDuration">12 חודשים</span> מיום ההדגמה כלפי הלקוח הישיר בלבד.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== TERMS ===== -->
+    <section class="card">
+      <div class="card-title">תנאי האחריות</div>
+
+      <button type="button" class="terms-toggle" id="termsToggle" aria-expanded="false">
+        <span class="icon-left">
+          <span>📋</span>
+          <span id="termsToggleText">הצג תנאי אחריות מלאים</span>
+        </span>
+        <span class="chevron">▼</span>
+      </button>
+
+      <div class="terms-content" id="termsContent">
+        <div class="terms-inner">
+          <ol>
+            <li>תעודה זו ניתנת כביטחון לאחריות טכנית מלאה לפעולתה של מערכת גילוי האש, ניהול עשן וכריזת חירום המצוינת לעיל.</li>
+            <li>אחריותנו לפי תעודה זו היא לתקן או להחליף ללא תשלום כל מרכיב המערכת שנמצא על ידינו כלא תקין, כאשר השימוש בו היה על פי הוראות החברה ו/או היצרן, ובהספקת חשמל סדירה.</li>
+            <li>אחריותנו לפי תעודה זו היא לטפל בכל תקלה ולהחזיר את המערכת לתפקוד תקין ומלא.</li>
+            <li>אחריותנו לפי תעודה זו היא ל-12 חודשים מיום ההדגמה כלפי הלקוח הישיר בלבד ששמו וכתובתו מצוינים בכתב אחריות זה.</li>
+            <li>מבלי למעט בכל מה שנאמר לעיל, אחריות זו לא תחול במקרים הבאים:
+              <ol>
+                <li>תקלה שנגרמה משימוש הנוגד את הוראות ההפעלה.</li>
+                <li>תקלה הנובעת מתקלות או הפרעות ברשת החשמל.</li>
+                <li>טיפול, שינוי או תיקון שנעשו לא על ידי נציגי החברה.</li>
+                <li>פגיעה שנגרמה בזדון או ברשלנות.</li>
+                <li>נזק שנגרם עקב נזילות מים, חומצה או כל חומר אחר.</li>
+                <li>נזק שנגרם עקב שבר מכני, חיצוני או ונדליזם.</li>
+                <li>נזק שנגרם עקב תנאי סביבה חריגים (טמפרטורה, לחות).</li>
+              </ol>
+            </li>
+          </ol>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== SIGNATURES ===== -->
+    <section class="card">
+      <div class="card-title">חתימות</div>
+
+      <div class="signature-section">
+        <span class="signature-label"><span>✍️</span><span>מקבל ראשי</span></span>
+        <div class="fields">
+          <div class="field">
+            <label>שם המקבל <span class="req">*</span></label>
+            <input class="input" type="text" name="receiver1_name" required>
+          </div>
+          <div class="field">
+            <label>ת.ז</label>
+            <input class="input input-mono" type="text" name="receiver1_id" inputmode="numeric">
+          </div>
+        </div>
+        <div class="signature-pad-wrap">
+          <div class="pad-title">
+            <span>חתימה</span>
+            <button class="signature-clear" data-target="receiver1" type="button">נקה חתימה</button>
+          </div>
+          <div class="signature-pad" data-name="receiver1"><span class="signature-placeholder">✒️ חתום כאן</span></div>
+        </div>
+      </div>
+
+      <div class="signature-section">
+        <span class="signature-label"><span>✍️</span><span>מקבל שני</span><span class="optional">(אופציונלי)</span></span>
+        <div class="fields">
+          <div class="field">
+            <label>שם המקבל</label>
+            <input class="input" type="text" name="receiver2_name">
+          </div>
+          <div class="field">
+            <label>ת.ז</label>
+            <input class="input input-mono" type="text" name="receiver2_id" inputmode="numeric">
+          </div>
+        </div>
+        <div class="signature-pad-wrap">
+          <div class="pad-title">
+            <span>חתימה</span>
+            <button class="signature-clear" data-target="receiver2" type="button">נקה חתימה</button>
+          </div>
+          <div class="signature-pad" data-name="receiver2"><span class="signature-placeholder">✒️ חתום כאן (לא חובה)</span></div>
+        </div>
+      </div>
+
+      <div class="signature-section">
+        <span class="signature-label"><span>🛡️</span><span>מוסר (נציג טלפייר)</span></span>
+        <div class="fields-1">
+          <div class="field">
+            <label>שם המוסר <span class="req">*</span></label>
+            <input class="input" type="text" name="deliverer_name" required>
+          </div>
+        </div>
+        <div class="signature-pad-wrap">
+          <div class="pad-title">
+            <span>חתימה</span>
+            <button class="signature-clear" data-target="deliverer" type="button">נקה חתימה</button>
+          </div>
+          <div class="signature-pad" data-name="deliverer"><span class="signature-placeholder">✒️ חתום כאן</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== SUBMIT BAR ===== -->
+    <div class="submit-bar">
+      <div class="submit-summary">
+        <span>🛡️</span>
+        <span>השלם את החתימות ולחץ <strong>שלח</strong></span>
+      </div>
+      <div style="display:flex; gap:10px;">
+        <button type="button" class="btn btn-secondary" onclick="window.print()">🖨️ הדפסה</button>
+        <button type="submit" class="btn btn-primary">שליחת תעודה →</button>
+      </div>
+    </div>
+
+  </form>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- Scanner modal -->
+<div class="scanner-overlay" id="scannerOverlay"></div>
+<div class="scanner-modal" id="scannerModal" role="dialog" aria-modal="true">
+  <div class="scanner-header">
+    <div class="scanner-title"><span>📷</span><span>סריקת מספר סידורי</span></div>
+    <button type="button" class="scanner-close" id="scannerClose" aria-label="סגור">×</button>
+  </div>
+  <div class="scanner-body">
+    <div class="scanner-tabs">
+      <button type="button" class="scanner-tab active" data-mode="camera"><span>📹</span><span>מצלמה</span></button>
+      <button type="button" class="scanner-tab" data-mode="upload"><span>🖼️</span><span>העלאת תמונה</span></button>
+    </div>
+    <div id="scannerView">
+      <div class="loading">מאתחל מצלמה...</div>
+    </div>
+    <div id="uploadView" style="display:none;">
+      <label class="upload-zone" for="scanFileInput">
+        <div class="upload-icon">🖼️</div>
+        <div class="upload-text">לחץ או גרור תמונה לכאן</div>
+        <div class="upload-hint">תומך ב-Barcode, QR Code · JPG, PNG</div>
+        <input type="file" id="scanFileInput" accept="image/*" style="display:none;">
+      </label>
+    </div>
+    <div class="scanner-hint">💡 כוון את המצלמה לברקוד או QR על לוח הבקרה. המספר ייקלט אוטומטית.</div>
+    <div class="scan-error" id="scanError"></div>
+  </div>
+</div>
+
+<!-- Libraries -->
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<!-- Shared scripts -->
+<script src="shared/theme.js"></script>
+<script src="shared/signature-pad.js"></script>
+<script src="shared/pdf-generator.js"></script>
+
+<script>
+// ============================================
+// PAGE LOGIC - Form 2: Warranty Certificate
+// ============================================
+
+// 1. Theme + Signatures
+TF_initTheme();
+const pads = TF_initSignatures();
+
+// 2. Prefill from shared
+TF_prefillShared(['customer_name', 'handover_date', 'deliverer_name']);
+(function() {
+  const shared = TF_getShared();
+  const r1 = document.querySelector('[name="receiver1_name"]');
+  if (r1 && !r1.value && shared.receiver_name) r1.value = shared.receiver_name;
+})();
+
+// 3. Model selector -> updates banner + header
+const panelModel = document.getElementById('panelModel');
+const certModel = document.getElementById('certModel');
+const headerTagline = document.getElementById('headerTagline');
+
+function updateModelDisplay() {
+  const value = panelModel.value || 'ADR-7000';
+  certModel.textContent = value;
+  headerTagline.textContent = 'לוח בקרה ' + value;
+}
+panelModel.addEventListener('change', updateModelDisplay);
+updateModelDisplay();
+
+// 4. Warranty auto-calc (+12 months) + dynamic duration text
+const hd = document.getElementById('handoverDate');
+const we = document.getElementById('warrantyEnd');
+const durationLabel = document.getElementById('warrantyDuration');
+
+function formatDuration(months, extraDays) {
+  let parts = [];
+  if (months > 0) {
+    if (months === 1) parts.push('חודש אחד');
+    else if (months === 2) parts.push('חודשיים');
+    else parts.push(months + ' חודשים');
+  }
+  if (extraDays > 0) {
+    if (extraDays === 1) parts.push('יום אחד');
+    else if (extraDays === 2) parts.push('יומיים');
+    else parts.push(extraDays + ' ימים');
+  }
+  if (parts.length === 0) return '0 ימים';
+  if (months >= 12 && extraDays === 0) {
+    const years = Math.floor(months / 12);
+    const remMonths = months % 12;
+    let yearText = years === 1 ? 'שנה אחת' : (years === 2 ? 'שנתיים' : years + ' שנים');
+    if (remMonths === 0) return yearText;
+    let monthText = remMonths === 1 ? 'חודש' : (remMonths === 2 ? 'חודשיים' : remMonths + ' חודשים');
+    return yearText + ' ו-' + monthText;
+  }
+  return parts.join(' ו-');
+}
+
+function updateDurationText() {
+  if (!hd.value || !we.value) { durationLabel.textContent = '—'; return; }
+  const start = new Date(hd.value);
+  const end = new Date(we.value);
+  if (end <= start) { durationLabel.textContent = 'תאריך לא תקין'; return; }
+  let months = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
+  let tempEnd = new Date(start);
+  tempEnd.setMonth(tempEnd.getMonth() + months);
+  if (tempEnd > end) {
+    months--;
+    tempEnd = new Date(start);
+    tempEnd.setMonth(tempEnd.getMonth() + months);
+  }
+  const dayDiff = Math.round((end - tempEnd) / (1000 * 60 * 60 * 24));
+  durationLabel.textContent = formatDuration(months, dayDiff);
+}
+
+function updateWarrantyFromHandover() {
+  if (!hd.value) return;
+  const d = new Date(hd.value);
+  d.setFullYear(d.getFullYear() + 1);
+  we.value = d.toISOString().split('T')[0];
+  updateDurationText();
+}
+
+hd.addEventListener('change', updateWarrantyFromHandover);
+we.addEventListener('change', updateDurationText);
+if (hd.value && !we.value) updateWarrantyFromHandover();
+else updateDurationText();
+
+// 5. Terms accordion
+const termsToggle = document.getElementById('termsToggle');
+const termsContent = document.getElementById('termsContent');
+termsToggle.addEventListener('click', () => {
+  const isOpen = termsContent.classList.toggle('open');
+  termsToggle.setAttribute('aria-expanded', isOpen);
+  document.getElementById('termsToggleText').textContent =
+    isOpen ? 'הסתר תנאי אחריות' : 'הצג תנאי אחריות מלאים';
+});
+
+// 6. Barcode / QR scanner
+const scanBtn = document.getElementById('scanBtn');
+const scannerOverlay = document.getElementById('scannerOverlay');
+const scannerModal = document.getElementById('scannerModal');
+const scannerClose = document.getElementById('scannerClose');
+const scannerView = document.getElementById('scannerView');
+const uploadView = document.getElementById('uploadView');
+const scanFileInput = document.getElementById('scanFileInput');
+const serialInput = document.getElementById('serialNumber');
+const scanError = document.getElementById('scanError');
+
+let html5QrCode = null;
+let cameraStarted = false;
+
+function showScanError(msg) {
+  scanError.textContent = '⚠️ ' + msg;
+  scanError.classList.add('show');
+}
+function clearScanError() {
+  scanError.classList.remove('show');
+  scanError.textContent = '';
+}
+
+async function startCamera() {
+  clearScanError();
+  scannerView.innerHTML = '<div id="scanReader" style="width:100%;"></div>';
+  try {
+    html5QrCode = new Html5Qrcode("scanReader");
+    await html5QrCode.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: { width: 240, height: 160 }, aspectRatio: 1.4 },
+      (decodedText) => onScanSuccess(decodedText),
+      () => {}
+    );
+    cameraStarted = true;
+  } catch (err) {
+    console.error(err);
+    showScanError('לא ניתן לגשת למצלמה. אפשר גישה בהגדרות הדפדפן או בחר תמונה.');
+    scannerView.innerHTML = '<div class="loading">📷 מצלמה לא זמינה</div>';
+  }
+}
+
+async function stopCamera() {
+  if (html5QrCode && cameraStarted) {
+    try { await html5QrCode.stop(); await html5QrCode.clear(); } catch (e) {}
+    cameraStarted = false;
+    html5QrCode = null;
+  }
+}
+
+function onScanSuccess(text) {
+  serialInput.value = text;
+  serialInput.dispatchEvent(new Event('input', { bubbles: true }));
+  TF_toast('✓ נסרק בהצלחה: ' + text, 'success');
+  closeScannerModal();
+}
+
+async function openScannerModal() {
+  scannerOverlay.classList.add('show');
+  scannerModal.classList.add('show');
+  document.querySelectorAll('.scanner-tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.mode === 'camera');
+  });
+  scannerView.style.display = 'flex';
+  uploadView.style.display = 'none';
+  await startCamera();
+}
+
+async function closeScannerModal() {
+  await stopCamera();
+  scannerOverlay.classList.remove('show');
+  scannerModal.classList.remove('show');
+  clearScanError();
+}
+
+scanBtn.addEventListener('click', openScannerModal);
+scannerClose.addEventListener('click', closeScannerModal);
+scannerOverlay.addEventListener('click', closeScannerModal);
+
+document.querySelectorAll('.scanner-tab').forEach(tab => {
+  tab.addEventListener('click', async () => {
+    document.querySelectorAll('.scanner-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    clearScanError();
+    if (tab.dataset.mode === 'camera') {
+      uploadView.style.display = 'none';
+      scannerView.style.display = 'flex';
+      await startCamera();
+    } else {
+      await stopCamera();
+      scannerView.style.display = 'none';
+      uploadView.style.display = 'block';
+    }
+  });
+});
+
+scanFileInput.addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  clearScanError();
+  let tempContainer = document.getElementById('scanReader-temp');
+  if (!tempContainer) {
+    tempContainer = document.createElement('div');
+    tempContainer.id = 'scanReader-temp';
+    tempContainer.style.display = 'none';
+    document.body.appendChild(tempContainer);
+  }
+  const reader = new Html5Qrcode("scanReader-temp", false);
+  try {
+    const result = await reader.scanFile(file, false);
+    onScanSuccess(result);
+  } catch (err) {
+    showScanError('לא נמצא ברקוד/QR בתמונה. נסה תמונה ברורה יותר.');
+  } finally {
+    try { await reader.clear(); } catch (e2) {}
+    scanFileInput.value = '';
+  }
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && scannerModal.classList.contains('show')) closeScannerModal();
+});
+
+// 7. Submit
+const WEBHOOK_URL = 'https://hook.eu2.make.com/REPLACE_WITH_YOUR_HANDOVER_WEBHOOK';
+let lastPayload = null;
+
+document.getElementById('tfForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const form = e.target;
+  if (!form.checkValidity()) { form.reportValidity(); return; }
+
+  const missing = [];
+  if (pads.receiver1.isEmpty()) missing.push('מקבל ראשי');
+  if (pads.deliverer.isEmpty()) missing.push('מוסר');
+  if (missing.length) {
+    TF_toast('יש להוסיף חתימות חובה: ' + missing.join(', '));
+    return;
+  }
+
+  const data = {};
+  new FormData(form).forEach((v, k) => { data[k] = v; });
+  data.signatures = {
+    receiver1: pads.receiver1.toDataURL(),
+    receiver2: pads.receiver2.toDataURL(),
+    deliverer: pads.deliverer.toDataURL()
+  };
+  data.warranty_duration_text = durationLabel.textContent;
+
+  const payload = {
+    form_type: 'warranty',
+    submitted_at: new Date().toISOString(),
+    data: data
+  };
+
+  const btn = e.submitter;
+  if (btn) btn.disabled = true;
+
+  try {
+    if (WEBHOOK_URL.includes('REPLACE_WITH')) {
+      console.log('[Dry run] Payload:', payload);
+    } else {
+      const res = await fetch(WEBHOOK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+    }
+
+    TF_markSubmitted('warranty');
+    lastPayload = payload;
+
+    document.getElementById('successBanner').classList.add('show');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  } catch (err) {
+    console.error(err);
+    TF_toast('שגיאה בשליחה - נסה שוב');
+    if (btn) btn.disabled = false;
+  }
+});
+
+// 8. PDF download
+document.getElementById('downloadPdfBtn').addEventListener('click', () => {
+  if (!lastPayload) { TF_toast('אין נתונים ליצירת PDF'); return; }
+  const d = lastPayload.data;
+
+  const ok = TF_generatePDF({
+    title: 'תעודת אחריות - ' + (d.panel_model || ''),
+    formNumber: '02 / 03',
+    filename: 'Telefire_Warranty_' + (d.serial_number || 'cert') + '.pdf',
+    sections: [
+      {
+        title: 'פרטי הלוח והלקוח',
+        rows: [
+          ['דגם לוח הבקרה:', d.panel_model],
+          ['מס\' סידורי:', d.serial_number],
+          ['שם הלקוח:', d.customer_name],
+          ['עיר:', d.customer_city],
+          ['טלפון:', d.customer_phone]
+        ]
+      },
+      {
+        title: 'תוקף האחריות',
+        rows: [
+          ['תאריך מסירה:', d.handover_date],
+          ['תום אחריות:', d.warranty_end],
+          ['משך:', d.warranty_duration_text]
+        ]
+      },
+      {
+        title: 'תנאי האחריות (עיקרי הדברים)',
+        paragraphs: [
+          'תעודה זו ניתנת כביטחון לאחריות טכנית מלאה לפעולת המערכת.',
+          'האחריות כוללת תיקון או החלפה ללא תשלום של מרכיבים לא תקינים.',
+          'האחריות אינה חלה על: שימוש לא תקין, הפרעות חשמל, טיפול ע"י גורם לא מורשה, נזק בזדון, נזקי מים, שבר מכני, או תנאי סביבה חריגים.',
+          'תקופת האחריות: ' + (d.warranty_duration_text || '12 חודשים') + ' מיום ההדגמה.'
+        ]
+      }
+    ],
+    signatures: [
+      { label: 'מקבל ראשי', name: d.receiver1_name, id: d.receiver1_id, image: d.signatures.receiver1 },
+      { label: 'מקבל שני', name: d.receiver2_name, id: d.receiver2_id, image: d.signatures.receiver2 },
+      { label: 'מוסר (נציג טלפייר)', name: d.deliverer_name, id: '', image: d.signatures.deliverer }
+    ]
+  });
+
+  if (ok) TF_toast('PDF נוצר בהצלחה ✓', 'success');
+  else TF_toast('שגיאה ביצירת PDF');
+});
+</script>
+
+</body>
+</html>
