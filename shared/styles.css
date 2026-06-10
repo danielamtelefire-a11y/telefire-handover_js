@@ -845,10 +845,90 @@ html, body {
 }
 .footer strong { color: var(--text-muted); font-weight: 600; }
 
-/* ===== PRINT ===== */
+/* ===== FIELD ERROR (validators.js) ===== */
+.field-error {
+  font-size: 12px;
+  color: var(--tf-red);
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+/* ===== SKIP NAV BUTTON (move between forms without submitting) ===== */
+.skip-nav {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin: 16px 0;
+  flex-wrap: wrap;
+}
+.skip-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 18px;
+  background: transparent;
+  border: 1.5px dashed var(--border-strong);
+  color: var(--text-muted);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.15s;
+}
+.skip-nav-btn:hover {
+  border-color: var(--tf-teal);
+  color: var(--tf-teal);
+  background: rgba(109,170,220,0.06);
+}
+
+/* ===== PRINT - fixed page breaks ===== */
 @media print {
-  .submit-bar, .header-right, .theme-toggle, .back-btn, .tabs, .step-nav, .success-banner { display: none !important; }
-  body { background: white; }
+  .submit-bar, .header-right, .theme-toggle, .back-btn,
+  .tabs, .step-nav, .success-banner, .skip-nav,
+  .signature-clear, .scan-btn, .terms-toggle { display: none !important; }
+
+  html, body {
+    background: white !important;
+    font-size: 12px;
+  }
+  .app { max-width: 100%; padding: 0; }
+
   .panel { display: block !important; }
-  .card { box-shadow: none; border: 1px solid #ddd; break-inside: avoid; }
+
+  /* Cards: never split a card across two pages */
+  .card {
+    box-shadow: none !important;
+    border: 1px solid #ddd !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+    margin-bottom: 12px;
+    padding: 16px;
+  }
+
+  /* Signature blocks stay together */
+  .signature-section, .sig-card, .signature-pad-wrap {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Header prints compact */
+  .header {
+    box-shadow: none !important;
+    padding: 14px 20px;
+    break-after: avoid;
+  }
+
+  /* Terms always expanded in print */
+  .terms-content { max-height: none !important; overflow: visible !important; }
+
+  /* Signature pads keep white bg and visible border */
+  .signature-pad {
+    border: 1px solid #999 !important;
+    background: white !important;
+  }
+
+  /* Avoid orphan section titles at page bottom */
+  .card-title, .card-subtitle { break-after: avoid; page-break-after: avoid; }
 }
