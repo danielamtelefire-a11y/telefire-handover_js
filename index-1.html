@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>מסירת פרויקט | טלפייר</title>
+
+<!-- Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+
+<!-- Shared styles -->
+<link rel="stylesheet" href="shared/styles.css">
+</head>
+<body>
+
+<div class="app app--wide">
+
+  <!-- ===== HEADER ===== -->
+  <header class="header">
+    <div class="brand">
+      <div class="brand-logo">
+        <img src="shared/telefire-logo.png" alt="Telefire">
+      </div>
+      <div class="brand-text">
+        <div class="name">טלפייר</div>
+        <div class="tagline">FIRE DETECTION SYSTEMS</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="page-title">📋 מסירת פרויקט</div>
+      <button class="theme-toggle" id="themeToggle" aria-label="החלף תצוגה" title="החלף תצוגה">
+        <span id="themeIcon">🌙</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ===== INTRO ===== -->
+  <div class="intro-bar">
+    <div class="icon">💡</div>
+    <div>
+      תהליך מסירת פרויקט ללקוח כולל <strong>3 טפסים</strong>.
+      מלא את פרטי הפרויקט פעם אחת — הם יועברו אוטומטית לכל הטפסים.
+    </div>
+  </div>
+
+  <!-- ===== SHARED PROJECT FIELDS ===== -->
+  <section class="card">
+    <div class="card-title">
+      פרטי הפרויקט
+      <span class="card-title-num">SHARED</span>
+    </div>
+
+    <div class="fields-3">
+      <div class="field">
+        <label>מס' פרויקט <span class="req">*</span></label>
+        <input class="input input-mono" type="text" name="project_number" placeholder="P-2026-148">
+      </div>
+      <div class="field">
+        <label>שם הפרויקט <span class="req">*</span></label>
+        <input class="input" type="text" name="project_name" placeholder="שם הפרויקט מהביצוע">
+      </div>
+      <div class="field">
+        <label>שם הלקוח <span class="req">*</span></label>
+        <input class="input" type="text" name="customer_name" placeholder="שם החברה / המוסד">
+      </div>
+    </div>
+
+    <div class="fields-3" style="margin-top:16px;">
+      <div class="field">
+        <label>תאריך מסירה <span class="req">*</span></label>
+        <input class="input" type="date" name="handover_date">
+      </div>
+      <div class="field">
+        <label>שם המוסר <span class="req">*</span></label>
+        <input class="input" type="text" name="deliverer_name" placeholder="שמך">
+      </div>
+      <div class="field">
+        <label>שם המקבל <span class="req">*</span></label>
+        <input class="input" type="text" name="receiver_name" placeholder="שם מקבל הפרויקט">
+      </div>
+    </div>
+
+    <div class="fields-1" style="margin-top:16px;">
+      <div class="field">
+        <label>כתובת הפרויקט</label>
+        <input class="input" type="text" name="project_address" placeholder="כתובת מלאה">
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== FORM SELECTION CARDS ===== -->
+  <div class="section-label">בחר טופס למילוי</div>
+
+  <div class="handover-cards">
+
+    <!-- Card 1: Fire System -->
+    <a class="handover-card" href="form1-fire-system.html" data-form="fire-system">
+      <div class="handover-card-header">
+        <div class="handover-card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>
+          </svg>
+        </div>
+        <div class="handover-card-meta">
+          <span class="handover-card-num">01 / 03</span>
+          <span class="handover-card-status status-pending" data-status>טרם נמסר</span>
+        </div>
+      </div>
+      <h3>מסירת מערכת גילוי אש</h3>
+      <p>טופס מסירה ראשוני — כריזה, גילוי אש וטלפון כבאים. כולל אישור קבלת תיקי מערכת ודוח מכון התקנים.</p>
+      <span class="handover-card-cta">מילוי הטופס</span>
+    </a>
+
+    <!-- Card 2: Warranty -->
+    <a class="handover-card" href="form2-warranty.html" data-form="warranty">
+      <div class="handover-card-header">
+        <div class="handover-card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            <path d="M9 12l2 2 4-4"/>
+          </svg>
+        </div>
+        <div class="handover-card-meta">
+          <span class="handover-card-num">02 / 03</span>
+          <span class="handover-card-status status-pending" data-status>טרם נמסר</span>
+        </div>
+      </div>
+      <h3>תעודת אחריות</h3>
+      <p>תעודת אחריות ללוח הבקרה — בחירת דגם, מספר סידורי עם סריקת ברקוד, תאריך תום אחריות אוטומטי.</p>
+      <span class="handover-card-cta">מילוי הטופס</span>
+    </a>
+
+    <!-- Card 3: Service -->
+    <a class="handover-card" href="form3-service.html" data-form="service">
+      <div class="handover-card-header">
+        <div class="handover-card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="16" rx="2"/>
+            <path d="M7 8h10M7 12h10M7 16h6"/>
+          </svg>
+        </div>
+        <div class="handover-card-meta">
+          <span class="handover-card-num">03 / 03</span>
+          <span class="handover-card-status status-pending" data-status>טרם נמסר</span>
+        </div>
+      </div>
+      <h3>מסירת פרויקט לשירות</h3>
+      <p>הטופס הרחב — סוגי מערכות, מספרי סידוריים של רכזות, בדיקות מעבדה ופרטי לקוח שירות מלאים.</p>
+      <span class="handover-card-cta">מילוי הטופס</span>
+    </a>
+
+  </div>
+
+  <!-- ===== FOOTER ===== -->
+  <div class="footer">
+    <strong>טלפייר בע"מ</strong> · הסיבים 43, פתח תקווה · 03-9700400
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- Shared scripts -->
+<script src="shared/theme.js"></script>
+
+<script>
+// ============================================
+// PAGE LOGIC - Landing Page
+// ============================================
+
+// 1. Dark mode
+TF_initTheme();
+
+// 2. Shared fields setup
+const SHARED_FIELDS = [
+  'project_number', 'project_name', 'customer_name',
+  'handover_date', 'deliverer_name', 'receiver_name', 'project_address'
+];
+const REQUIRED_FIELDS = [
+  'project_number', 'project_name', 'customer_name',
+  'handover_date', 'deliverer_name', 'receiver_name'
+];
+
+// Prefill from previous session
+TF_prefillShared(SHARED_FIELDS);
+
+// Default handover date = today
+const dateField = document.querySelector('[name="handover_date"]');
+if (dateField && !dateField.value) {
+  dateField.value = new Date().toISOString().split('T')[0];
+  // Save the default too
+  const data = TF_getShared();
+  data.handover_date = dateField.value;
+  TF_setShared(data);
+}
+
+// Auto-save on typing
+TF_autosaveShared(SHARED_FIELDS);
+
+// 3. Update form status badges (נשלח ✓)
+const status = TF_getStatus();
+document.querySelectorAll('.handover-card').forEach(card => {
+  const form = card.dataset.form;
+  const badge = card.querySelector('[data-status]');
+  if (status[form] && status[form].submitted) {
+    badge.textContent = 'נשלח ✓';
+    badge.classList.remove('status-pending');
+    badge.classList.add('status-done');
+  }
+});
+
+// 4. Validate required fields before entering a form
+document.querySelectorAll('.handover-card').forEach(card => {
+  card.addEventListener('click', (e) => {
+    const missing = REQUIRED_FIELDS.filter(name => {
+      const el = document.querySelector(`[name="${name}"]`);
+      return !el || !el.value.trim();
+    });
+    if (missing.length) {
+      e.preventDefault();
+      TF_toast('יש למלא את כל פרטי הפרויקט המשותפים');
+      const first = document.querySelector(`[name="${missing[0]}"]`);
+      if (first) {
+        first.focus();
+        first.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+  });
+});
+</script>
+
+</body>
+</html>
