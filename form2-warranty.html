@@ -287,6 +287,7 @@ select.select-model {
     </div>
     <div class="header-right">
       <a href="index.html" class="back-btn">← חזרה</a>
+      <button class="data-lock-toggle" id="dataLockToggle" type="button" aria-label="נעילת נתונים">🔓</button>
       <button class="theme-toggle" id="themeToggle" aria-label="החלף תצוגה">
         <span id="themeIcon">🌙</span>
       </button>
@@ -311,6 +312,7 @@ select.select-model {
 
   <!-- Free navigation between forms (drafts are saved automatically) -->
   <div class="skip-nav">
+    <button type="button" id="clearFormBtn" class="skip-nav-btn">🗑️ נקה טופס</button>
     <a href="form1-fire-system.html" class="skip-nav-btn">⏮️ דלג למסירת גילוי אש</a>
     <a href="form3-service.html" class="skip-nav-btn">⏭️ דלג למסירה לשירות</a>
   </div>
@@ -576,6 +578,11 @@ const FORM_TYPE = 'warranty';
 const formEl = document.getElementById('tfForm');
 TF_restoreForm(FORM_TYPE);
 TF_autosaveForm(FORM_TYPE, formEl);
+
+// Lock toggle + clear form button (clears signature pads too)
+TF_initDataControls(FORM_TYPE, function() {
+  Object.values(pads).forEach(p => p.clear());
+});
 
 // 2c. Live validators (Israeli ID + names)
 TF_initValidators();
