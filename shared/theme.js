@@ -131,20 +131,55 @@
   };
 
   // ============================================================
-  // 3b. FORM DRAFTS (full form autosave across navigation)
-  //     Saves EVERY field in the form (text, select, radio, checkbox)
-  //     so users can move between forms freely without losing data.
-  //     Signatures (canvas) are NOT saved - too large for storage.
+  // 3b. FORM DRAFTS + DATA LOCK SYSTEM
+  //
+  //     Behavior matrix:
+  //     - Navigating BETWEEN forms: draft always restored silently
+  //       (that's the whole point of drafts).
+  //     - RELOADING the same form (F5/Ctrl+F5):
+  //         * Lock ON  -> restore silently
+  //         * Lock OFF -> ask the user: continue draft / start clean
+  //     - Closing the tab: sessionStorage dies -> everything resets.
+  //     - "Clear form" button: wipes current form draft on demand.
+  //
+  //     Reload detection: performance.getEntriesByType('navigation').
   // ============================================================
 
   const DRAFT_PREFIX = 'tf_handover_draft_';
+  const LOCK_KEY = 'tf_handover_lock';
 
-  /**
-   * Restores all saved field values into the form.
-   * Call AFTER TF_prefillShared so drafts take priority.
-   * @param {string} formType - unique form key e.g. 'fire-system'
-   */
-  window.TF_restoreForm = function(formType) {
+  /** Returns true if data lock is ON (drafts survive reload silently). */
+  window.TF_isLocked = function() {
+    try { return sessionStorage.getItem(LOCK_KEY) === '1'; }
+    catch (_) { return false; }
+  };
+
+  /** Sets the data lock state. */
+  window.TF_setLocked = function(on) {
+    try { sessionStorage.setItem(LOCK_KEY, on ? '1' : '0'); } catch (_) {}
+  };
+
+  /** True if this page load is a reload (F5) rather than navigation. */
+  function isReload() {
+    try {
+      const nav = performance.getEntriesByType('navigation');
+      return nav.length > 0 && nav[0].type === 'reload';
+    } catch (_) { return false; }
+  }
+
+  /** Checks whether a draft exists for a form. */
+  function hasDraft(formType) {
+    try {
+      const raw = sessionStorage.getItem(DRAFT_PREFIX + formType);
+      if (!raw) return false;
+      const draft = JSON.parse(raw);
+      // Consider it a draft only if at least one field has a value
+      return Object.keys(draft).some(k => draft[k] !== '' && draft[k] !== false);
+    } catch (_) { return false; }
+  }
+
+  /** Applies draft values into the page fields. */
+  function applyDraft(formType) {
     let draft;
     try { draft = JSON.parse(sessionStorage.getItem(DRAFT_PREFIX + formType) || '{}'); }
     catch (_) { return; }
@@ -160,17 +195,60 @@
           el.checked = !!value;
         } else {
           el.value = value;
-          // Trigger change so dependent UI (model banner, warranty calc) updates
           el.dispatchEvent(new Event('change', { bubbles: true }));
         }
       });
     });
+  }
+
+  /** Shows the "draft found" dialog. Returns via callbacks. */
+  function showDraftDialog(onContinue, onClean) {
+    // Build overlay + dialog
+    const overlay = document.createElement('div');
+    overlay.className = 'draft-dialog-overlay show';
+    const dialog = document.createElement('div');
+    dialog.className = 'draft-dialog show';
+    dialog.innerHTML =
+      '<div class="draft-dialog-icon">📝</div>' +
+      '<div class="draft-dialog-title">נמצאה טיוטה שמורה</div>' +
+      '<div class="draft-dialog-text">יש נתונים שמורים מהפעם הקודמת. מה תרצה לעשות?</div>' +
+      '<div class="draft-dialog-actions">' +
+      '<button type="button" class="btn btn-primary" data-action="continue">המשך מהטיוטה</button>' +
+      '<button type="button" class="btn btn-secondary" data-action="clean">התחל נקי</button>' +
+      '</div>';
+
+    document.body.appendChild(overlay);
+    document.body.appendChild(dialog);
+
+    const close = () => { overlay.remove(); dialog.remove(); };
+    dialog.querySelector('[data-action="continue"]').addEventListener('click', () => { close(); onContinue(); });
+    dialog.querySelector('[data-action="clean"]').addEventListener('click', () => { close(); onClean(); });
+  }
+
+  /**
+   * Restores form draft with lock-aware behavior.
+   * Call AFTER TF_prefillShared. See behavior matrix above.
+   * @param {string} formType
+   */
+  window.TF_restoreForm = function(formType) {
+    if (!hasDraft(formType)) return;
+
+    if (isReload() && !window.TF_isLocked()) {
+      // Reload without lock -> ask the user
+      showDraftDialog(
+        () => applyDraft(formType),                         // continue
+        () => window.TF_clearFormDraft(formType)            // start clean
+      );
+    } else {
+      // Navigation between pages, or lock is ON -> restore silently
+      applyDraft(formType);
+    }
   };
 
   /**
    * Watches all form fields and saves them to sessionStorage on change.
-   * @param {string} formType - unique form key e.g. 'fire-system'
-   * @param {HTMLFormElement} form - the form element to watch
+   * @param {string} formType
+   * @param {HTMLFormElement|HTMLElement} form - container to watch
    */
   window.TF_autosaveForm = function(formType, form) {
     if (!form) return;
@@ -196,11 +274,55 @@
   };
 
   /**
-   * Clears the saved draft for a form (call after successful submit).
+   * Clears the saved draft for a form.
    * @param {string} formType
    */
   window.TF_clearFormDraft = function(formType) {
     try { sessionStorage.removeItem(DRAFT_PREFIX + formType); } catch (_) {}
+  };
+
+  /**
+   * Initializes the lock toggle + clear button in the page toolbar.
+   * Expects elements: #dataLockToggle (checkbox or button), #clearFormBtn.
+   * Either can be absent.
+   * @param {string} formType - which draft the clear button wipes
+   * @param {Function} [onClear] - extra cleanup (e.g. clear signature pads)
+   */
+  window.TF_initDataControls = function(formType, onClear) {
+    // Lock toggle
+    const lockBtn = document.getElementById('dataLockToggle');
+    if (lockBtn) {
+      const renderLock = () => {
+        const locked = window.TF_isLocked();
+        lockBtn.classList.toggle('locked', locked);
+        lockBtn.innerHTML = locked ? '🔒' : '🔓';
+        lockBtn.title = locked
+          ? 'נעילת נתונים פעילה - רענון לא ימחק נתונים'
+          : 'נעילת נתונים כבויה - רענון ישאל אם לשחזר';
+      };
+      lockBtn.addEventListener('click', () => {
+        window.TF_setLocked(!window.TF_isLocked());
+        renderLock();
+        window.TF_toast(window.TF_isLocked() ? '🔒 נעילת נתונים הופעלה' : '🔓 נעילת נתונים כובתה', 'success');
+      });
+      renderLock();
+    }
+
+    // Clear form button
+    const clearBtn = document.getElementById('clearFormBtn');
+    if (clearBtn) {
+      clearBtn.addEventListener('click', () => {
+        if (!confirm('לנקות את כל הנתונים בטופס הזה?')) return;
+        window.TF_clearFormDraft(formType);
+        // Clear visible fields
+        document.querySelectorAll('#tfForm input, #tfForm select, #tfForm textarea, .card input, .card select, .card textarea').forEach(el => {
+          if (el.type === 'radio' || el.type === 'checkbox') el.checked = false;
+          else el.value = '';
+        });
+        if (typeof onClear === 'function') onClear();
+        window.TF_toast('🗑️ הטופס נוקה', 'success');
+      });
+    }
   };
 
   // ============================================================
