@@ -224,6 +224,7 @@ const pads = TF_initSignatures();
 
 // 3. Prefill shared fields from landing page
 TF_prefillShared(['project_number', 'project_name', 'customer_name', 'handover_date', 'deliverer_name']);
+// receiver_email is available via TF_getShared().receiver_email for email sending (round 4)
 
 // receiver1_name gets the shared receiver_name
 (function() {
@@ -238,7 +239,22 @@ const formEl = document.getElementById('tfForm');
 TF_restoreForm(FORM_TYPE);
 TF_autosaveForm(FORM_TYPE, formEl);
 
-// Lock toggle + clear form button (clears signature pads too)
+// Restore saved signatures from draft
+TF_restoreSignatures(pads, TF_loadSignatureDraft(FORM_TYPE));
+
+// Save signatures whenever the user draws (pointerup on any pad)
+function syncSignatureDraft() {
+  setTimeout(() => TF_saveSignatureDraft(FORM_TYPE, TF_getSignatures(pads)), 50);
+}
+document.querySelectorAll('.signature-pad').forEach(block => {
+  block.addEventListener('pointerup', syncSignatureDraft);
+});
+// Also sync when a single signature is cleared
+document.querySelectorAll('.signature-clear').forEach(btn => {
+  btn.addEventListener('click', syncSignatureDraft);
+});
+
+// Lock toggle + clear button (GLOBAL clear - new project)
 TF_initDataControls(FORM_TYPE, function() {
   Object.values(pads).forEach(p => p.clear());
 });
