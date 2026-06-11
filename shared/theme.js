@@ -130,6 +130,25 @@
     try { sessionStorage.removeItem(STATUS_KEY); } catch (_) {}
   };
 
+  /**
+   * GLOBAL CLEAR - wipes EVERYTHING for a fresh project:
+   * all drafts, all signatures, shared fields, and submission statuses.
+   * Used by the "clear" button on every page (clearing = new project).
+   */
+  window.TF_clearAll = function() {
+    try {
+      const keys = [];
+      for (let i = 0; i < sessionStorage.length; i++) {
+        const k = sessionStorage.key(i);
+        if (k && k.indexOf('tf_handover_') === 0) keys.push(k);
+      }
+      // Remove all tf_handover_* keys EXCEPT the lock preference
+      keys.forEach(k => {
+        if (k !== LOCK_KEY) sessionStorage.removeItem(k);
+      });
+    } catch (_) {}
+  };
+
   // ============================================================
   // 3b. FORM DRAFTS + DATA LOCK SYSTEM
   //
@@ -146,7 +165,19 @@
   // ============================================================
 
   const DRAFT_PREFIX = 'tf_handover_draft_';
+  const SIG_PREFIX = 'tf_handover_sig_';
   const LOCK_KEY = 'tf_handover_lock';
+
+  /** Saves signatures for a form draft. @param {string} formType @param {Object} sigs {name:dataURL} */
+  window.TF_saveSignatureDraft = function(formType, sigs) {
+    try { sessionStorage.setItem(SIG_PREFIX + formType, JSON.stringify(sigs || {})); } catch (_) {}
+  };
+
+  /** Loads saved signatures for a form draft. @returns {Object} {name:dataURL} */
+  window.TF_loadSignatureDraft = function(formType) {
+    try { return JSON.parse(sessionStorage.getItem(SIG_PREFIX + formType) || '{}'); }
+    catch (_) { return {}; }
+  };
 
   /** Returns true if data lock is ON (drafts survive reload silently). */
   window.TF_isLocked = function() {
@@ -308,19 +339,21 @@
       renderLock();
     }
 
-    // Clear form button
+    // Clear button = START NEW PROJECT (global wipe of everything)
     const clearBtn = document.getElementById('clearFormBtn');
     if (clearBtn) {
       clearBtn.addEventListener('click', () => {
-        if (!confirm('לנקות את כל הנתונים בטופס הזה?')) return;
-        window.TF_clearFormDraft(formType);
-        // Clear visible fields
+        if (!confirm('פעולה זו תמחק את כל הנתונים בכל הטפסים ותתחיל פרויקט חדש. להמשיך?')) return;
+        window.TF_clearAll();
+        // Clear visible fields on the current page
         document.querySelectorAll('#tfForm input, #tfForm select, #tfForm textarea, .card input, .card select, .card textarea').forEach(el => {
           if (el.type === 'radio' || el.type === 'checkbox') el.checked = false;
           else el.value = '';
         });
         if (typeof onClear === 'function') onClear();
-        window.TF_toast('🗑️ הטופס נוקה', 'success');
+        window.TF_toast('🗑️ כל הנתונים נוקו - פרויקט חדש', 'success');
+        // Reload after a moment so all derived UI resets cleanly
+        setTimeout(() => { window.location.reload(); }, 800);
       });
     }
   };
