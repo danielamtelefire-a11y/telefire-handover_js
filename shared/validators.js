@@ -62,6 +62,23 @@
     return !!letters && letters.length >= 3;
   };
 
+  /**
+   * Validates a FULL person name: first + last name.
+   * Requires at least 2 words, each containing 2+ real letters.
+   * "דני" -> false | "דני כהן" -> true | "ד. כהן" -> false | "Dan Cohen" -> true
+   * @param {string} name
+   * @returns {boolean}
+   */
+  window.TF_validateFullName = function(name) {
+    if (!name) return false;
+    const words = String(name).trim().split(/\s+/);
+    const realWords = words.filter(w => {
+      const letters = w.match(/[\u0590-\u05FFa-zA-Z]/g);
+      return letters && letters.length >= 2;
+    });
+    return realWords.length >= 2;
+  };
+
   // ============================================================
   // LIVE FIELD VALIDATION (visual feedback)
   // ============================================================
@@ -138,6 +155,28 @@
   };
 
   /**
+   * Attaches live FULL NAME validation (first + last) to an input.
+   * Used for person fields: receiver, deliverer, contact person.
+   * @param {HTMLInputElement} input
+   */
+  window.TF_attachFullNameValidation = function(input) {
+    if (!input) return;
+    input.addEventListener('blur', () => {
+      const val = input.value.trim();
+      if (!val) {
+        if (input.required) markInvalid(input, 'שדה חובה');
+        else markValid(input);
+        return;
+      }
+      if (window.TF_validateFullName(val)) {
+        markValid(input);
+      } else {
+        markInvalid(input, 'יש להזין שם מלא (פרטי + משפחה)');
+      }
+    });
+  };
+
+  /**
    * Auto-attaches validators to all matching fields in the page:
    * - Inputs with name containing "_id" → ID validation
    * - Inputs with name containing "name" (and type=text) → name validation
@@ -149,9 +188,24 @@
       window.TF_attachIDValidation(input);
     });
 
-    // Name fields: receiver1_name, deliverer_name, customer_name, etc.
-    document.querySelectorAll('input[type="text"][name*="name"]').forEach(input => {
-      window.TF_attachNameValidation(input);
+    // PERSON name fields -> full name (first + last) required
+    const personFields = ['receiver1_name', 'receiver2_name', 'deliverer_name',
+                          'receiver_name', 'service_contact_name', 'project_manager',
+                          'service_rep_name', 'customer_signer_name',
+                          'execution_signer_name', 'service_signer_name'];
+    personFields.forEach(name => {
+      document.querySelectorAll('input[name="' + name + '"]').forEach(input => {
+        window.TF_attachFullNameValidation(input);
+      });
+    });
+
+    // COMPANY/customer name fields -> loose validation (3+ letters, can be one word)
+    const looseFields = ['customer_name', 'project_name', 'service_customer_name',
+                         'approved_lab_name', 'lab_name', 'integration_lab_name'];
+    looseFields.forEach(name => {
+      document.querySelectorAll('input[name="' + name + '"]').forEach(input => {
+        window.TF_attachNameValidation(input);
+      });
     });
   };
 
@@ -164,14 +218,34 @@
   window.TF_validateForm = function(form) {
     const errors = [];
 
-    // Validate name fields
-    form.querySelectorAll('input[type="text"][name*="name"]').forEach(input => {
-      const val = input.value.trim();
-      if (input.required && !val) {
-        errors.push('חסר: ' + (input.closest('.field')?.querySelector('label')?.textContent || input.name).replace('*', '').trim());
-      } else if (val && !window.TF_validateName(val)) {
-        errors.push('שם לא תקין: "' + val + '"');
-      }
+    // Person name fields: must be full name (first + last)
+    const personFields = ['receiver1_name', 'receiver2_name', 'deliverer_name',
+                          'receiver_name', 'service_contact_name', 'project_manager',
+                          'service_rep_name', 'customer_signer_name',
+                          'execution_signer_name', 'service_signer_name'];
+    personFields.forEach(name => {
+      form.querySelectorAll('input[name="' + name + '"]').forEach(input => {
+        const val = input.value.trim();
+        if (input.required && !val) {
+          errors.push('חסר: ' + (input.closest('.field')?.querySelector('label')?.textContent || input.name).replace('*', '').trim());
+        } else if (val && !window.TF_validateFullName(val)) {
+          errors.push('יש להזין שם מלא (פרטי + משפחה): "' + val + '"');
+        }
+      });
+    });
+
+    // Company/loose name fields: 3+ letters
+    const looseFields = ['customer_name', 'project_name', 'service_customer_name',
+                         'approved_lab_name', 'lab_name', 'integration_lab_name'];
+    looseFields.forEach(name => {
+      form.querySelectorAll('input[name="' + name + '"]').forEach(input => {
+        const val = input.value.trim();
+        if (input.required && !val) {
+          errors.push('חסר: ' + (input.closest('.field')?.querySelector('label')?.textContent || input.name).replace('*', '').trim());
+        } else if (val && !window.TF_validateName(val)) {
+          errors.push('שם לא תקין: "' + val + '"');
+        }
+      });
     });
 
     // Validate ID fields (only if filled - IDs are usually optional)
