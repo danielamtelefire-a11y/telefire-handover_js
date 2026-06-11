@@ -168,6 +168,11 @@
   const SIG_PREFIX = 'tf_handover_sig_';
   const LOCK_KEY = 'tf_handover_lock';
 
+  // Guard flag: while restoring a draft we must NOT let autosave run,
+  // otherwise the change events fired during restore overwrite the draft
+  // with partially-restored (empty) values. This was the ID-not-saved bug.
+  let _isRestoring = false;
+
   /** Saves signatures for a form draft. @param {string} formType @param {Object} sigs {name:dataURL} */
   window.TF_saveSignatureDraft = function(formType, sigs) {
     try { sessionStorage.setItem(SIG_PREFIX + formType, JSON.stringify(sigs || {})); } catch (_) {}
@@ -215,6 +220,7 @@
     try { draft = JSON.parse(sessionStorage.getItem(DRAFT_PREFIX + formType) || '{}'); }
     catch (_) { return; }
 
+    _isRestoring = true;
     Object.keys(draft).forEach(name => {
       const value = draft[name];
       const els = document.querySelectorAll(`[name="${name}"]`);
@@ -230,6 +236,9 @@
         }
       });
     });
+    // Release the guard after the current event loop, so all the
+    // change events fired above are ignored by autosave.
+    setTimeout(() => { _isRestoring = false; }, 0);
   }
 
   /** Shows the "draft found" dialog. Returns via callbacks. */
@@ -286,6 +295,7 @@
     const key = DRAFT_PREFIX + formType;
 
     const save = () => {
+      if (_isRestoring) return; // don't save mid-restore (prevents the ID-loss bug)
       const draft = {};
       form.querySelectorAll('input, select, textarea').forEach(el => {
         if (!el.name) return;
