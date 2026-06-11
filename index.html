@@ -30,6 +30,7 @@
     </div>
     <div class="header-right">
       <div class="page-title">📋 מסירת פרויקט</div>
+      <button class="data-lock-toggle" id="dataLockToggle" type="button" aria-label="נעילת נתונים">🔓</button>
       <button class="theme-toggle" id="themeToggle" aria-label="החלף תצוגה" title="החלף תצוגה">
         <span id="themeIcon">🌙</span>
       </button>
@@ -49,13 +50,14 @@
   <section class="card">
     <div class="card-title">
       פרטי הפרויקט
+      <button type="button" id="clearFormBtn" class="signature-clear" style="margin-right:auto;">🗑️ נקה נתונים</button>
       <span class="card-title-num">SHARED</span>
     </div>
 
     <div class="fields-3">
       <div class="field">
         <label>מס' פרויקט <span class="req">*</span></label>
-        <input class="input input-mono" type="text" name="project_number" placeholder="P-2026-148">
+        <input class="input" type="text" name="project_number" placeholder="P-2026-148">
       </div>
       <div class="field">
         <label>שם הפרויקט <span class="req">*</span></label>
@@ -183,21 +185,73 @@ const REQUIRED_FIELDS = [
   'handover_date', 'deliverer_name', 'receiver_name'
 ];
 
-// Prefill from previous session
-TF_prefillShared(SHARED_FIELDS);
+// Landing page uses the same lock-aware draft mechanism as the forms.
+// The shared fields themselves live in TF shared storage (for cross-form prefill),
+// and the lock/dialog behavior wraps around restoring them on reload.
+const FORM_TYPE = 'landing';
 
-// Default handover date = today
-const dateField = document.querySelector('[name="handover_date"]');
-if (dateField && !dateField.value) {
-  dateField.value = new Date().toISOString().split('T')[0];
-  // Save the default too
-  const data = TF_getShared();
-  data.handover_date = dateField.value;
-  TF_setShared(data);
-}
+// Restore: on reload without lock -> ask; otherwise silent restore
+(function() {
+  const shared = TF_getShared();
+  const hasData = SHARED_FIELDS.some(n => shared[n]);
+
+  function applySharedToFields() {
+    TF_prefillShared(SHARED_FIELDS);
+  }
+  function clearSharedData() {
+    TF_clearShared();
+  }
+
+  // Detect reload
+  let reload = false;
+  try {
+    const nav = performance.getEntriesByType('navigation');
+    reload = nav.length > 0 && nav[0].type === 'reload';
+  } catch (e) {}
+
+  if (hasData && reload && !TF_isLocked()) {
+    // Ask the user via the shared dialog (built by theme.js for forms;
+    // we re-create the same minimal dialog here)
+    const overlay = document.createElement('div');
+    overlay.className = 'draft-dialog-overlay show';
+    const dialog = document.createElement('div');
+    dialog.className = 'draft-dialog show';
+    dialog.innerHTML =
+      '<div class="draft-dialog-icon">📝</div>' +
+      '<div class="draft-dialog-title">נמצאו נתונים שמורים</div>' +
+      '<div class="draft-dialog-text">יש פרטי פרויקט שמורים מהפעם הקודמת. מה תרצה לעשות?</div>' +
+      '<div class="draft-dialog-actions">' +
+      '<button type="button" class="btn btn-primary" data-action="continue">המשך מהנתונים</button>' +
+      '<button type="button" class="btn btn-secondary" data-action="clean">התחל נקי</button>' +
+      '</div>';
+    document.body.appendChild(overlay);
+    document.body.appendChild(dialog);
+    const close = () => { overlay.remove(); dialog.remove(); };
+    dialog.querySelector('[data-action="continue"]').addEventListener('click', () => { close(); applySharedToFields(); setDefaultDate(); });
+    dialog.querySelector('[data-action="clean"]').addEventListener('click', () => { close(); clearSharedData(); setDefaultDate(); });
+  } else {
+    applySharedToFields();
+    setDefaultDate();
+  }
+
+  function setDefaultDate() {
+    const dateField = document.querySelector('[name="handover_date"]');
+    if (dateField && !dateField.value) {
+      dateField.value = new Date().toISOString().split('T')[0];
+      const data = TF_getShared();
+      data.handover_date = dateField.value;
+      TF_setShared(data);
+    }
+  }
+})();
 
 // Auto-save on typing
 TF_autosaveShared(SHARED_FIELDS);
+
+// Lock toggle + clear button
+TF_initDataControls(FORM_TYPE, function() {
+  TF_clearShared();
+});
 
 // 3. Update form status badges (נשלח ✓)
 const status = TF_getStatus();
