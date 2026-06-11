@@ -109,6 +109,19 @@
       if (this.placeholder) this.placeholder.style.display = 'flex';
     }
 
+    /** Loads a signature from a base64 PNG data URL (for draft restore). */
+    loadFromDataURL(dataURL) {
+      if (!dataURL) return;
+      const img = new Image();
+      img.onload = () => {
+        const rect = this.canvas.getBoundingClientRect();
+        this.ctx.drawImage(img, 0, 0, rect.width, rect.height);
+        this.empty = false;
+        if (this.placeholder) this.placeholder.style.display = 'none';
+      };
+      img.src = dataURL;
+    }
+
     /** Returns true if the user hasn't signed yet. */
     isEmpty() {
       return this.empty;
@@ -158,6 +171,33 @@
     });
 
     return pads;
+  };
+
+  /**
+   * Collects all current signatures as a {name: dataURL} object.
+   * @param {Object} pads - the map returned by TF_initSignatures()
+   * @returns {Object}
+   */
+  window.TF_getSignatures = function(pads) {
+    const out = {};
+    Object.keys(pads || {}).forEach(name => {
+      out[name] = pads[name].toDataURL();
+    });
+    return out;
+  };
+
+  /**
+   * Restores signatures from a {name: dataURL} object into the pads.
+   * @param {Object} pads - the map returned by TF_initSignatures()
+   * @param {Object} saved - {name: dataURL}
+   */
+  window.TF_restoreSignatures = function(pads, saved) {
+    if (!saved) return;
+    Object.keys(saved).forEach(name => {
+      if (pads[name] && saved[name]) {
+        pads[name].loadFromDataURL(saved[name]);
+      }
+    });
   };
 
   // Expose the class globally (in case anyone wants direct access)
