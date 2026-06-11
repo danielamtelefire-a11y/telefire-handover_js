@@ -84,7 +84,12 @@
       </div>
     </div>
 
-    <div class="fields-1" style="margin-top:16px;">
+    <div class="fields" style="margin-top:16px;">
+      <div class="field">
+        <label>מייל מקבל הפרויקט</label>
+        <input class="input" type="email" name="receiver_email" dir="ltr" style="text-align:right;" placeholder="name@example.com">
+        <span class="field-hint">לשליחת ה-PDF המסכם בסיום</span>
+      </div>
       <div class="field">
         <label>כתובת הפרויקט</label>
         <input class="input" type="text" name="project_address" placeholder="כתובת מלאה">
@@ -178,7 +183,7 @@ TF_initTheme();
 // 2. Shared fields setup
 const SHARED_FIELDS = [
   'project_number', 'project_name', 'customer_name',
-  'handover_date', 'deliverer_name', 'receiver_name', 'project_address'
+  'handover_date', 'deliverer_name', 'receiver_name', 'receiver_email', 'project_address'
 ];
 const REQUIRED_FIELDS = [
   'project_number', 'project_name', 'customer_name',
@@ -248,9 +253,9 @@ const FORM_TYPE = 'landing';
 // Auto-save on typing
 TF_autosaveShared(SHARED_FIELDS);
 
-// Lock toggle + clear button
+// Lock toggle + clear button (GLOBAL clear = new project, resets everything)
 TF_initDataControls(FORM_TYPE, function() {
-  TF_clearShared();
+  // status badges reset happens via reload after TF_clearAll
 });
 
 // 3. Update form status badges (נשלח ✓)
