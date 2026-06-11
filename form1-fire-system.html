@@ -318,7 +318,8 @@ document.getElementById('tfForm').addEventListener('submit', async e => {
     }
 
     TF_markSubmitted('fire-system');
-    TF_clearFormDraft(FORM_TYPE);
+    // NOTE: draft is intentionally NOT cleared after submit -
+    // data persists (incl. signatures) until the user starts a new project.
     lastPayload = payload;
 
     document.getElementById('successBanner').classList.add('show');
