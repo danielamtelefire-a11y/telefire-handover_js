@@ -30,6 +30,7 @@
     </div>
     <div class="header-right">
       <a href="index.html" class="back-btn">← חזרה</a>
+      <button class="data-lock-toggle" id="dataLockToggle" type="button" aria-label="נעילת נתונים">🔓</button>
       <button class="theme-toggle" id="themeToggle" aria-label="החלף תצוגה">
         <span id="themeIcon">🌙</span>
       </button>
@@ -56,6 +57,7 @@
 
   <!-- Free navigation between forms (drafts are saved automatically) -->
   <div class="skip-nav">
+    <button type="button" id="clearFormBtn" class="skip-nav-btn">🗑️ נקה טופס</button>
     <a href="form2-warranty.html" class="skip-nav-btn">⏭️ דלג לתעודת אחריות</a>
     <a href="form3-service.html" class="skip-nav-btn">⏭️ דלג למסירה לשירות</a>
   </div>
@@ -235,6 +237,11 @@ const FORM_TYPE = 'fire-system';
 const formEl = document.getElementById('tfForm');
 TF_restoreForm(FORM_TYPE);
 TF_autosaveForm(FORM_TYPE, formEl);
+
+// Lock toggle + clear form button (clears signature pads too)
+TF_initDataControls(FORM_TYPE, function() {
+  Object.values(pads).forEach(p => p.clear());
+});
 
 // 3c. Attach live validators (Israeli ID + names)
 TF_initValidators();
