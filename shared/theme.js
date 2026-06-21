@@ -223,6 +223,17 @@
     _isRestoring = true;
     Object.keys(draft).forEach(name => {
       const value = draft[name];
+      // Array fields (repeater rows, e.g. fire_model[]) -> fill matching
+      // inputs in order. Rows are expected to already exist (the page rebuilds
+      // them before calling restore); extra values beyond existing rows are
+      // ignored.
+      if (Array.isArray(value)) {
+        document.querySelectorAll(`[name="${name}[]"]`).forEach((el, i) => {
+          el.value = value[i] != null ? value[i] : '';
+          el.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+        return;
+      }
       const els = document.querySelectorAll(`[name="${name}"]`);
       els.forEach(el => {
         if (el.type === 'radio') {
@@ -299,12 +310,26 @@
       const draft = {};
       form.querySelectorAll('input, select, textarea').forEach(el => {
         if (!el.name) return;
+        const isArr = el.name.slice(-2) === '[]';
+        const base = isArr ? el.name.slice(0, -2) : el.name;
         if (el.type === 'radio') {
-          if (el.checked) draft[el.name] = el.value;
+          if (el.checked) draft[base] = el.value;
         } else if (el.type === 'checkbox') {
-          draft[el.name] = el.checked;
+          draft[base] = el.checked;
+        } else if (isArr) {
+          // Repeater rows: collect every same-named input into an array,
+          // preserving row order (instead of the last value overwriting).
+          if (!Array.isArray(draft[base])) draft[base] = [];
+          draft[base].push(el.value);
         } else {
-          draft[el.name] = el.value;
+          draft[base] = el.value;
+        }
+      });
+      // Drop arrays that are entirely empty so a blank form isn't counted as a
+      // draft (keeps hasDraft / the "draft found" dialog behaving as before).
+      Object.keys(draft).forEach(k => {
+        if (Array.isArray(draft[k]) && draft[k].every(v => !String(v).trim())) {
+          delete draft[k];
         }
       });
       try { sessionStorage.setItem(key, JSON.stringify(draft)); } catch (_) {}
