@@ -18,6 +18,7 @@
       this.ctx = canvas.getContext('2d');
       this.drawing = false;
       this.empty = true;
+      this._lastDataURL = null; // single source of truth for the signature image
       this.placeholder = canvas.parentNode.querySelector('.signature-placeholder');
 
       // Setup canvas dimensions for high-DPI screens
@@ -47,6 +48,8 @@
         if (!this.drawing) return;
         this.drawing = false;
         try { canvas.releasePointerCapture(e.pointerId); } catch (_) {}
+        // Store the drawing as the source of truth so it survives resize/tab switches.
+        try { this._lastDataURL = this.canvas.toDataURL(); } catch (_) {}
       };
       canvas.addEventListener('pointerup', stop);
       canvas.addEventListener('pointercancel', stop);
@@ -93,20 +96,20 @@
       // resizing to 0 would wipe the canvas. We'll resize when it's shown.
       if (rect.width === 0 || rect.height === 0) return;
 
-      // Safely capture existing drawing (toDataURL throws on 0-size canvas)
-      let data = null;
-      if (preserve && !this.empty && this.canvas.width > 0 && this.canvas.height > 0) {
-        try { data = this.canvas.toDataURL(); } catch (_) { data = null; }
-      }
       const ratio = window.devicePixelRatio || 1;
       this.canvas.width = rect.width * ratio;
       this.canvas.height = rect.height * ratio;
       this.ctx.scale(ratio, ratio);
       this._setStroke();
-      if (data) {
+
+      // Redraw from the stored source of truth. This survives both a resize and
+      // the case where the image was "loaded" while the pad was hidden (0x0) and
+      // never actually rendered - which previously lost the signature.
+      if (preserve && this._lastDataURL) {
         const img = new Image();
-        img.onload = () => this.ctx.drawImage(img, 0, 0, rect.width, rect.height);
-        img.src = data;
+        const w = rect.width, h = rect.height;
+        img.onload = () => this.ctx.drawImage(img, 0, 0, w, h);
+        img.src = this._lastDataURL;
       }
     }
 
@@ -114,18 +117,20 @@
     clear() {
       this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
       this.empty = true;
+      this._lastDataURL = null;
       if (this.placeholder) this.placeholder.style.display = 'flex';
     }
 
     /** Loads a signature from a base64 PNG data URL (for draft restore). */
     loadFromDataURL(dataURL) {
       if (!dataURL) return;
+      this._lastDataURL = dataURL;   // source of truth; rendered now or on next resize
+      this.empty = false;
+      if (this.placeholder) this.placeholder.style.display = 'none';
       const img = new Image();
       img.onload = () => {
         const rect = this.canvas.getBoundingClientRect();
-        this.ctx.drawImage(img, 0, 0, rect.width, rect.height);
-        this.empty = false;
-        if (this.placeholder) this.placeholder.style.display = 'none';
+        if (rect.width && rect.height) this.ctx.drawImage(img, 0, 0, rect.width, rect.height);
       };
       img.src = dataURL;
     }
@@ -146,7 +151,11 @@
 
     /** Exports the signature as a base64 PNG data URL (or '' if empty). */
     toDataURL() {
-      return this.empty ? '' : this.canvas.toDataURL('image/png');
+      if (this.empty) return '';
+      // Prefer the stored source of truth: the canvas may be blank if the
+      // signature was restored while the pad was hidden and not yet shown.
+      if (this._lastDataURL) return this._lastDataURL;
+      try { return this.canvas.toDataURL('image/png'); } catch (_) { return ''; }
     }
   }
 
