@@ -496,6 +496,11 @@ function switchTab(id) {
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === id));
   document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === id));
   window.scrollTo({ top: 0, behavior: 'smooth' });
+  // Signature pads initialized while their tab was hidden have 0x0 size.
+  // Resize them now that the tab is visible so they're drawable.
+  if (id === 't4' && typeof pads === 'object') {
+    setTimeout(() => { Object.values(pads).forEach(p => p.resize && p.resize()); }, 50);
+  }
 }
 document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => switchTab(t.dataset.tab)));
 document.querySelectorAll('[data-next]').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.next)));
