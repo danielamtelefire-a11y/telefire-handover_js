@@ -26,7 +26,7 @@
     wrap.id = 'tf-pdf-template';
     // A4 ratio at 794px wide (96dpi). Rendered at scale=2 for sharpness.
     wrap.style.cssText = [
-      'position: fixed',
+      'position: absolute',
       'top: 0',
       'left: -9999px',           // off-screen, invisible to user
       'width: 794px',
@@ -156,11 +156,19 @@
 
     // Give the browser a tick to render fonts/images inside the template
     setTimeout(() => {
+      const fullHeight = template.scrollHeight;
+      const fullWidth = template.offsetWidth;
       window.html2canvas(template, {
         scale: 2,               // high resolution
         useCORS: true,
         backgroundColor: '#FFFFFF',
-        logging: false
+        logging: false,
+        width: fullWidth,
+        height: fullHeight,
+        windowWidth: fullWidth,
+        windowHeight: fullHeight,
+        scrollX: 0,
+        scrollY: 0
       }).then(canvas => {
         document.body.removeChild(template);
 
