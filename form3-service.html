@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>מסירת פרויקט לשירות | טלפייר</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="shared/styles.css">
+
+<style>
+/* ===== Form-3 specific: system cards, panel repeater, test cards, docs ===== */
+.system-card {
+  background: var(--input-bg-soft);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  margin-bottom: 10px;
+  transition: all 0.2s;
+}
+.system-card.active {
+  background: rgba(204,33,40,0.04);
+  border-color: var(--tf-red);
+  box-shadow: 0 0 0 3px rgba(204,33,40,0.08);
+}
+[data-theme="dark"] .system-card.active { background: rgba(204,33,40,0.12); }
+.system-card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.system-card-name { font-size: 14px; font-weight: 600; color: var(--text); display: flex; align-items: center; gap: 10px; flex: 1; }
+.system-card-name .emoji { font-size: 22px; }
+.system-card.active .system-card-name { color: var(--tf-red); font-weight: 700; }
+.system-card-body { display: none; margin-top: 16px; padding-top: 16px; border-top: 1px dashed var(--border-strong); }
+.system-card.active .system-card-body { display: block; }
+
+.panel-row { display: grid; grid-template-columns: 32px 1fr 1fr 36px; gap: 10px; align-items: end; margin-bottom: 10px; }
+.panel-row .num { width: 30px; height: 30px; border-radius: 50%; background: var(--tf-red); color: white; font-size: 12px; font-weight: 700; font-family: 'JetBrains Mono', monospace; display: flex; align-items: center; justify-content: center; margin-bottom: 8px; }
+.panel-row .btn-remove { width: 36px; height: 36px; border-radius: 8px; background: transparent; border: 1.5px solid var(--border); color: var(--text-muted); cursor: pointer; font-size: 18px; margin-bottom: 5px; transition: all 0.15s; font-family: inherit; }
+.panel-row .btn-remove:hover { background: rgba(204,33,40,0.1); border-color: var(--tf-red); color: var(--tf-red); }
+@media (max-width: 600px) {
+  .panel-row { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .panel-row .num { grid-column: 1; }
+  .panel-row .btn-remove { grid-column: 2; justify-self: end; }
+}
+
+.test-card { background: var(--input-bg-soft); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 16px; margin-bottom: 12px; }
+.test-card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; gap: 12px; flex-wrap: wrap; }
+.test-card-title { font-weight: 700; font-size: 14px; color: var(--text); display: flex; align-items: center; gap: 8px; }
+.test-card-title::before { content: ''; width: 3px; height: 16px; background: var(--tf-teal); border-radius: 2px; }
+.test-status-row { display: flex; gap: 4px; }
+.test-status-row label { padding: 6px 14px; background: var(--card); border: 1.5px solid var(--border); border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; color: var(--text-muted); transition: all 0.15s; }
+.test-status-row label:hover { border-color: var(--text-muted); }
+.test-status-row label:has(input:checked) { border-color: var(--tf-red); color: var(--tf-red); background: rgba(204,33,40,0.08); }
+.test-status-row input { display: none; }
+
+.docs-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+@media (max-width: 600px) { .docs-grid { grid-template-columns: 1fr; } }
+.doc-check { display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: var(--input-bg-soft); border: 1.5px solid var(--border); border-radius: var(--radius-sm); cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.15s; user-select: none; }
+.doc-check:hover { border-color: var(--text-muted); }
+.doc-check:has(input:checked) { background: rgba(109,170,220,0.1); border-color: var(--tf-teal); color: var(--text); font-weight: 600; }
+.doc-check input { accent-color: var(--tf-red); }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <header class="header">
+    <div class="brand">
+      <div class="brand-logo"><img src="shared/telefire-logo.png" alt="Telefire"></div>
+      <div class="brand-text">
+        <div class="name">מסירת פרויקט לשירות</div>
+        <div class="tagline">טופס מסירה מלא</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <a href="index.html" class="back-btn">← חזרה</a>
+      <button class="data-lock-toggle" id="dataLockToggle" type="button" aria-label="נעילת נתונים">🔓</button>
+      <button class="theme-toggle" id="themeToggle" aria-label="החלף תצוגה"><span id="themeIcon">🌙</span></button>
+    </div>
+  </header>
+
+  <div class="success-banner" id="successBanner">
+    <div class="banner-top">
+      <div class="banner-check">✓</div>
+      <div class="banner-text">
+        <div class="banner-title">הטופס נשלח בהצלחה</div>
+        <div class="banner-subtitle">בחר את הפעולה הבאה</div>
+      </div>
+    </div>
+    <div class="banner-actions">
+      <button type="button" class="banner-btn" id="downloadPdfBtn">📄 הורדת PDF מסכם</button>
+      <a href="index.html" class="banner-btn banner-btn-ghost">חזרה לדף הראשי</a>
+    </div>
+  </div>
+
+  <span class="form-badge">📋 טופס 03 / 03</span>
+
+  <div class="skip-nav">
+    <button type="button" id="clearFormBtn" class="skip-nav-btn">🗑️ נקה טופס</button>
+    <a href="form1-fire-system.html" class="skip-nav-btn">⏮️ מסירת גילוי אש</a>
+    <a href="form2-warranty.html" class="skip-nav-btn">⏮️ תעודת אחריות</a>
+  </div>
+
+  <nav class="tabs" id="tabsNav">
+    <button type="button" class="tab active" data-tab="t1"><span class="tab-num">1</span>פרויקט</button>
+    <button type="button" class="tab" data-tab="t2"><span class="tab-num">2</span>מערכות</button>
+    <button type="button" class="tab" data-tab="t3"><span class="tab-num">3</span>שירות ובדיקות</button>
+    <button type="button" class="tab" data-tab="t4"><span class="tab-num">4</span>סיכום וחתימות</button>
+  </nav>
+
+  <form id="tfForm">
+
+    <!-- TAB 1: PROJECT -->
+    <section class="card panel active" id="t1">
+      <div class="card-title">פרטי הפרויקט</div>
+
+      <div class="card-subtitle"><span class="icon">📁</span><span>פרטים בסיסיים</span></div>
+      <div class="fields-3">
+        <div class="field">
+          <label>מס' פרויקט <span class="req">*</span></label>
+          <input class="input" type="text" name="project_number" required>
+        </div>
+        <div class="field">
+          <label>שם הפרויקט <span class="req">*</span></label>
+          <input class="input" type="text" name="project_name" required>
+        </div>
+        <div class="field">
+          <label>שם הלקוח (ביצוע) <span class="req">*</span></label>
+          <input class="input" type="text" name="customer_name" required>
+        </div>
+      </div>
+      <div class="fields" style="margin-top:14px;">
+        <div class="field">
+          <label>כתובת הפרויקט</label>
+          <input class="input" type="text" name="project_address">
+        </div>
+        <div class="field">
+          <label>עלות הפרויקט (₪)</label>
+          <input class="input" type="number" name="project_cost" min="0" step="100" placeholder="0">
+        </div>
+        <div class="field field--full">
+          <label>תיאור הפרויקט בקצרה</label>
+          <textarea class="input textarea" name="project_description" rows="2"></textarea>
+        </div>
+      </div>
+
+      <div class="card-subtitle"><span class="icon">🏷️</span><span>סגמנט ומסירה</span></div>
+      <div class="fields-3">
+        <div class="field">
+          <label>סגמנט פרויקט</label>
+          <select class="input select" name="segment">
+            <option value="">— בחר —</option>
+            <option>רטרופיט</option>
+            <option>מסחרי</option>
+            <option>בטחוני</option>
+            <option>מגורים</option>
+            <option>אחר</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>תאריך מסירה ללקוח</label>
+          <input class="input" type="date" name="handover_date">
+        </div>
+        <div class="field">
+          <label>מספר לקוח שירות</label>
+          <input class="input input-mono" type="text" name="service_customer_number" placeholder="909 / 908 / 901">
+        </div>
+      </div>
+      <div class="fields" style="margin-top:14px;">
+        <div class="field">
+          <label>מנהל פרויקט (ביצוע)</label>
+          <input class="input" type="text" name="project_manager">
+        </div>
+        <div class="field">
+          <label>נציג שירות נוכח במסירה</label>
+          <input class="input" type="text" name="service_rep_name">
+        </div>
+      </div>
+
+      <div class="card-subtitle"><span class="icon">🚶</span><span>סיור עם השירות</span></div>
+      <div class="yn-row">
+        <span class="label">האם התקיים סיור בשיתוף השירות?</span>
+        <div class="yn-pills">
+          <label><input type="radio" name="service_tour" value="yes" data-toggle="tourDate"><span>כן</span></label>
+          <label><input type="radio" name="service_tour" value="no" data-toggle="tourDate"><span>לא</span></label>
+        </div>
+      </div>
+      <div class="fields" style="margin-top:14px; display:none;" id="tourDate">
+        <div class="field">
+          <label>תאריך הסיור</label>
+          <input class="input" type="date" name="service_tour_date">
+        </div>
+      </div>
+
+      <div class="step-nav">
+        <span></span>
+        <button type="button" class="btn btn-primary" data-next="t2">המשך למערכות ←</button>
+      </div>
+    </section>
+
+    <!-- TAB 2: SYSTEMS -->
+    <section class="card panel" id="t2">
+      <div class="card-title">סוגי המערכות בפרויקט</div>
+      <div class="card-subtitle"><span class="icon">🎯</span><span>המערכות במסירה</span></div>
+      <p style="font-size:13px; color:var(--text-muted); margin-bottom:14px;">סמן כן/לא לכל מערכת. במערכות "כן" יפתחו שדות לפרטי הרכזות.</p>
+
+      <div class="system-card" data-system="fire">
+        <div class="system-card-head">
+          <div class="system-card-name"><span class="emoji">🔥</span><span>מערכת גילוי אש</span></div>
+          <div class="yn-pills">
+            <label><input type="radio" name="sys_fire" value="yes"><span>כן</span></label>
+            <label><input type="radio" name="sys_fire" value="no"><span>לא</span></label>
+          </div>
+        </div>
+        <div class="system-card-body">
+          <div id="fireRows"></div>
+          <button type="button" class="btn-add-mini" data-add="fire">+ הוסף רכזת</button>
+        </div>
+      </div>
+
+      <div class="system-card" data-system="pa">
+        <div class="system-card-head">
+          <div class="system-card-name"><span class="emoji">📢</span><span>מערכת כריזה</span></div>
+          <div class="yn-pills">
+            <label><input type="radio" name="sys_pa" value="yes"><span>כן</span></label>
+            <label><input type="radio" name="sys_pa" value="no"><span>לא</span></label>
+          </div>
+        </div>
+        <div class="system-card-body">
+          <div id="paRows"></div>
+          <button type="button" class="btn-add-mini" data-add="pa">+ הוסף רכזת</button>
+        </div>
+      </div>
+
+      <div class="system-card" data-system="smoke">
+        <div class="system-card-head">
+          <div class="system-card-name"><span class="emoji">💨</span><span>פאנל ניהול עשן</span></div>
+          <div class="yn-pills">
+            <label><input type="radio" name="sys_smoke" value="yes"><span>כן</span></label>
+            <label><input type="radio" name="sys_smoke" value="no"><span>לא</span></label>
+          </div>
+        </div>
+      </div>
+
+      <div class="system-card" data-system="phone">
+        <div class="system-card-head">
+          <div class="system-card-name"><span class="emoji">☎️</span><span>טלפון כבאים</span></div>
+          <div class="yn-pills">
+            <label><input type="radio" name="sys_phone" value="yes"><span>כן</span></label>
+            <label><input type="radio" name="sys_phone" value="no"><span>לא</span></label>
+          </div>
+        </div>
+      </div>
+
+      <div class="system-card" data-system="shelter">
+        <div class="system-card-head">
+          <div class="system-card-name"><span class="emoji">🛡️</span><span>אינטרקום מחסה</span></div>
+          <div class="yn-pills">
+            <label><input type="radio" name="sys_shelter" value="yes"><span>כן</span></label>
+            <label><input type="radio" name="sys_shelter" value="no"><span>לא</span></label>
+          </div>
+        </div>
+      </div>
+
+      <div class="system-card" data-system="intercom">
+        <div class="system-card-head">
+          <div class="system-card-name"><span class="emoji">📞</span><span>מערכת אינטרקום</span></div>
+          <div class="yn-pills">
+            <label><input type="radio" name="sys_intercom" value="yes"><span>כן</span></label>
+            <label><input type="radio" name="sys_intercom" value="no"><span>לא</span></label>
+          </div>
+        </div>
+        <div class="system-card-body">
+          <div class="fields">
+            <div class="field"><label>דגם המערכת</label><input class="input input-mono" type="text" name="intercom_model"></div>
+            <div class="field"><label>קבלן מבצע (שם וטלפון)</label><input class="input" type="text" name="intercom_contractor"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card-subtitle"><span class="icon">👷</span><span>קבלן וכמויות</span></div>
+      <div class="fields">
+        <div class="field"><label>קבלן מבצע מע' גילוי אש (שם וטלפון)</label><input class="input" type="text" name="fire_contractor"></div>
+        <div class="field"><label>פירוט מערכות נוספות</label><input class="input" type="text" name="additional_systems" placeholder="לא חובה"></div>
+      </div>
+      <div class="fields-3" style="margin-top:14px;">
+        <div class="field"><label>מספר התקנים</label><input class="input input-mono" type="number" name="device_count" min="0" placeholder="0"></div>
+        <div class="field"><label>מספר כיבויים</label><input class="input input-mono" type="number" name="suppression_count" min="0" placeholder="0"></div>
+        <div class="field"><label>שם מעבדה מוסמכת</label><input class="input" type="text" name="approved_lab_name"></div>
+      </div>
+      <div class="yn-row" style="margin-top:14px;">
+        <span class="label">האם בוצעה ביקורת כיבויים?</span>
+        <div class="yn-pills">
+          <label><input type="radio" name="suppression_check" value="yes"><span>כן</span></label>
+          <label><input type="radio" name="suppression_check" value="no"><span>לא</span></label>
+        </div>
+      </div>
+
+      <div class="step-nav">
+        <button type="button" class="btn btn-secondary" data-next="t1">→ חזור</button>
+        <button type="button" class="btn btn-primary" data-next="t3">המשך לשירות ←</button>
+      </div>
+    </section>
+
+    <!-- TAB 3: SERVICE + TESTS -->
+    <section class="card panel" id="t3">
+      <div class="card-title">שירות ובדיקות</div>
+
+      <div class="card-subtitle"><span class="icon">👤</span><span>פרטי לקוח השירות</span></div>
+      <div class="fields">
+        <div class="field"><label>שם לקוח (שירות)</label><input class="input" type="text" name="service_customer_name"></div>
+        <div class="field">
+          <label>ח.פ / ת.ז</label>
+          <input class="input input-mono" type="text" name="service_customer_id">
+          <span class="field-hint">בוועדי בתים - ת.ז של איש הקשר</span>
+        </div>
+        <div class="field field--full"><label>כתובת האתר העדכנית</label><input class="input" type="text" name="service_site_address"></div>
+      </div>
+      <div class="fields-3" style="margin-top:14px;">
+        <div class="field"><label>שם איש קשר</label><input class="input" type="text" name="service_contact_name"></div>
+        <div class="field"><label>טלפון</label><input class="input input-mono" type="tel" name="service_contact_phone" dir="ltr" style="text-align:right;"></div>
+        <div class="field"><label>מייל</label><input class="input" type="email" name="service_contact_email" dir="ltr" style="text-align:right;"></div>
+      </div>
+
+      <div class="card-subtitle"><span class="icon">📅</span><span>תקופת אחריות והסכם שירות</span></div>
+      <div class="fields">
+        <div class="field"><label>תקופת בדק - מתאריך</label><input class="input" type="date" name="warranty_from"></div>
+        <div class="field"><label>תקופת בדק - עד תאריך</label><input class="input" type="date" name="warranty_to"></div>
+      </div>
+      <div class="fields" style="margin-top:14px;">
+        <div class="field"><label>ימי פעילות</label><input class="input" type="text" name="service_days" placeholder="א-ה / כל השבוע"></div>
+        <div class="field"><label>שעות פעילות</label><input class="input input-mono" type="text" name="service_hours" placeholder="08:00-17:00"></div>
+        <div class="field"><label>מענה לתקלה משביתה</label><input class="input" type="text" name="response_blocking" placeholder="עד 4 שעות"></div>
+        <div class="field"><label>מענה לתקלה רגילה</label><input class="input" type="text" name="response_normal" placeholder="עד 48 שעות"></div>
+      </div>
+
+      <div class="card-subtitle"><span class="icon">📎</span><span>מסמכים מצורפים</span></div>
+      <div class="docs-grid">
+        <label class="doc-check"><input type="checkbox" name="doc_lab_main"><span>📄 אישור מעבדה לגילוי אש</span></label>
+        <label class="doc-check"><input type="checkbox" name="doc_lab_suppression"><span>📄 אישור מעבדה כיבוי אש</span></label>
+        <label class="doc-check"><input type="checkbox" name="doc_lab_integration"><span>📄 אישור מעבדה לאינטגרציה</span></label>
+        <label class="doc-check"><input type="checkbox" name="doc_plans"><span>📐 תוכניות</span></label>
+        <label class="doc-check"><input type="checkbox" name="doc_service_agreement"><span>📋 הסכם שירות</span></label>
+        <label class="doc-check"><input type="checkbox" name="doc_other"><span>📁 מסמכים אחרים</span></label>
+      </div>
+
+      <div class="card-subtitle"><span class="icon">🧪</span><span>בדיקות טכניות</span></div>
+
+      <div class="test-card">
+        <div class="test-card-head">
+          <div class="test-card-title">בדיקת מעבדה</div>
+          <div class="test-status-row">
+            <label><input type="radio" name="lab_status" value="not_done">לא בוצעה</label>
+            <label><input type="radio" name="lab_status" value="ok">תקין</label>
+            <label><input type="radio" name="lab_status" value="findings">ליקויים</label>
+          </div>
+        </div>
+        <div class="fields">
+          <div class="field"><label>מספר התעודה</label><input class="input input-mono" type="text" name="lab_cert_number"></div>
+          <div class="field"><label>שם המעבדה</label><input class="input" type="text" name="lab_name"></div>
+          <div class="field field--full"><label>ליקויים ואחריות לסילוק</label><textarea class="input textarea" name="lab_findings" rows="2"></textarea></div>
+        </div>
+      </div>
+
+      <div class="test-card">
+        <div class="test-card-head">
+          <div class="test-card-title">בדיקת אינטגרציה</div>
+          <div class="test-status-row">
+            <label><input type="radio" name="integration_status" value="not_done">לא בוצעה</label>
+            <label><input type="radio" name="integration_status" value="ok">תקין</label>
+            <label><input type="radio" name="integration_status" value="findings">ליקויים</label>
+          </div>
+        </div>
+        <div class="fields">
+          <div class="field"><label>מספר התעודה</label><input class="input input-mono" type="text" name="integration_cert_number"></div>
+          <div class="field"><label>שם המעבדה</label><input class="input" type="text" name="integration_lab_name"></div>
+          <div class="field field--full"><label>ליקויים ואחריות לסילוק</label><textarea class="input textarea" name="integration_findings" rows="2"></textarea></div>
+        </div>
+      </div>
+
+      <div class="test-card">
+        <div class="test-card-head">
+          <div class="test-card-title">בדיקת אינטגרציה מדגמית</div>
+          <div class="test-status-row">
+            <label><input type="radio" name="sample_status" value="not_done">לא בוצעה</label>
+            <label><input type="radio" name="sample_status" value="ok">תקין</label>
+            <label><input type="radio" name="sample_status" value="findings">ליקויים</label>
+          </div>
+        </div>
+        <div class="field"><label>הערות וליקויים</label><textarea class="input textarea" name="sample_findings" rows="2"></textarea></div>
+      </div>
+
+      <div class="step-nav">
+        <button type="button" class="btn btn-secondary" data-next="t2">→ חזור</button>
+        <button type="button" class="btn btn-primary" data-next="t4">המשך לסיכום ←</button>
+      </div>
+    </section>
+
+    <!-- TAB 4: SUMMARY + SIGNATURES -->
+    <section class="card panel" id="t4">
+      <div class="card-title">סיכום וחתימות</div>
+
+      <div class="card-subtitle"><span class="icon">⚙️</span><span>מידע טכני נוסף</span></div>
+      <div class="fields">
+        <div class="yn-row">
+          <span class="label">חובר MCOM?</span>
+          <div class="yn-pills">
+            <label><input type="radio" name="mcom_connected" value="yes"><span>כן</span></label>
+            <label><input type="radio" name="mcom_connected" value="no"><span>לא</span></label>
+          </div>
+        </div>
+        <div class="yn-row">
+          <span class="label">קוד מערכת שונה ל-922003?</span>
+          <div class="yn-pills">
+            <label><input type="radio" name="code_changed" value="yes"><span>כן</span></label>
+            <label><input type="radio" name="code_changed" value="no"><span>לא</span></label>
+          </div>
+        </div>
+      </div>
+
+      <div class="card-subtitle"><span class="icon">📝</span><span>הערות והרחבות</span></div>
+      <div class="field">
+        <label>הערות כלליות - תקלות פתוחות, מידע חשוב לשירות</label>
+        <textarea class="input textarea" name="general_notes" rows="3"></textarea>
+      </div>
+      <div class="field" style="margin-top:14px;">
+        <label>צפי לחיבורים נוספים (משרדים / חנויות)</label>
+        <textarea class="input textarea" name="future_connections" rows="3" placeholder="שמות, טלפונים של אנשי קשר, ומידע שיסייע לסגור את נושא החיבורים"></textarea>
+      </div>
+
+      <div class="card-subtitle"><span class="icon">✍️</span><span>חתימות (חובה)</span></div>
+      <div class="sig-cluster">
+        <div class="sig-card">
+          <span class="signature-label">👤 הלקוח</span>
+          <input class="input" type="text" name="customer_signer_name" placeholder="שם הלקוח" style="margin-bottom:10px;">
+          <div class="signature-pad" data-name="customer"><span class="signature-placeholder">✒️ חתום כאן</span></div>
+          <button class="signature-clear" data-target="customer" type="button">נקה חתימה</button>
+        </div>
+        <div class="sig-card">
+          <span class="signature-label">🔧 נציג ביצוע</span>
+          <input class="input" type="text" name="execution_signer_name" placeholder="שם נציג ביצוע" style="margin-bottom:10px;">
+          <div class="signature-pad" data-name="execution"><span class="signature-placeholder">✒️ חתום כאן</span></div>
+          <button class="signature-clear" data-target="execution" type="button">נקה חתימה</button>
+        </div>
+        <div class="sig-card">
+          <span class="signature-label">🛡️ נציג שירות</span>
+          <input class="input" type="text" name="service_signer_name" placeholder="שם נציג שירות" style="margin-bottom:10px;">
+          <div class="signature-pad" data-name="service"><span class="signature-placeholder">✒️ חתום כאן</span></div>
+          <button class="signature-clear" data-target="service" type="button">נקה חתימה</button>
+        </div>
+      </div>
+
+      <div class="step-nav">
+        <button type="button" class="btn btn-secondary" data-next="t3">→ חזור</button>
+        <span></span>
+      </div>
+    </section>
+
+    <div class="submit-bar">
+      <div class="submit-summary">
+        <span>📋</span>
+        <span>השלם את 4 הלשוניות ולחץ <strong>שלח</strong></span>
+      </div>
+      <div style="display:flex; gap:10px;">
+        <button type="button" class="btn btn-secondary" onclick="window.print()">🖨️ הדפסה</button>
+        <button type="submit" class="btn btn-primary">שליחת טופס →</button>
+      </div>
+    </div>
+
+  </form>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="shared/theme.js"></script>
+<script src="shared/signature-pad.js"></script>
+<script src="shared/pdf-generator.js"></script>
+<script src="shared/validators.js"></script>
+
+<script>
+// ============================================
+// PAGE LOGIC - Form 3: Service Handover
+// ============================================
+TF_initTheme();
+const pads = TF_initSignatures();
+const FORM_TYPE = 'service';
+const formEl = document.getElementById('tfForm');
+
+// ----- TABS -----
+function switchTab(id) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === id));
+  document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === id));
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => switchTab(t.dataset.tab)));
+document.querySelectorAll('[data-next]').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.next)));
+
+// ----- TAB BADGES -----
+function refreshTabBadges() {
+  const tabFields = {
+    t1: ['project_number','project_name','customer_name','project_address','segment','handover_date'],
+    t2: ['sys_fire','sys_pa','sys_smoke','sys_phone','fire_contractor','device_count'],
+    t3: ['service_customer_name','service_contact_name','warranty_from','lab_status','integration_status'],
+    t4: ['customer_signer_name','execution_signer_name','service_signer_name','general_notes']
+  };
+  Object.keys(tabFields).forEach(tabId => {
+    const hasData = tabFields[tabId].some(name => {
+      const el = document.querySelector('[name="' + name + '"]');
+      if (!el) return false;
+      if (el.type === 'radio') return !!document.querySelector('[name="' + name + '"]:checked');
+      return el.value && el.value.trim();
+    });
+    const tab = document.querySelector('.tab[data-tab="' + tabId + '"]');
+    if (tab) tab.classList.toggle('has-data', hasData);
+  });
+}
+document.addEventListener('input', refreshTabBadges);
+document.addEventListener('change', refreshTabBadges);
+
+// ----- SYSTEM CARDS toggle -----
+document.querySelectorAll('.system-card').forEach(card => {
+  card.querySelectorAll('input[type="radio"]').forEach(r => {
+    r.addEventListener('change', () => {
+      card.classList.toggle('active', r.checked && r.value === 'yes');
+    });
+  });
+});
+
+// ----- TOUR DATE conditional -----
+document.querySelectorAll('[data-toggle]').forEach(input => {
+  input.addEventListener('change', () => {
+    const el = document.getElementById(input.dataset.toggle);
+    if (el) el.style.display = (input.value === 'yes' && input.checked) ? 'grid' : 'none';
+  });
+});
+
+// ----- PANEL REPEATERS -----
+function addPanel(type, model, serial) {
+  const container = document.getElementById(type + 'Rows');
+  const idx = container.children.length + 1;
+  const div = document.createElement('div');
+  div.className = 'panel-row';
+  div.innerHTML =
+    '<div class="num">' + idx + '</div>' +
+    '<div class="field"><label>דגם רכזת</label><input class="input input-mono" type="text" name="' + type + '_model[]" placeholder="ADR-7000"></div>' +
+    '<div class="field"><label>מס\' סידורי</label><input class="input input-mono" type="text" name="' + type + '_serial[]" placeholder="7K-2026"></div>' +
+    '<button type="button" class="btn-remove" title="הסר">×</button>';
+  div.querySelector('.btn-remove').addEventListener('click', () => {
+    div.remove();
+    Array.from(container.children).forEach((row, i) => { row.querySelector('.num').textContent = i + 1; });
+    saveFormDraft();
+  });
+  if (model) div.querySelector('[name="' + type + '_model[]"]').value = model;
+  if (serial) div.querySelector('[name="' + type + '_serial[]"]').value = serial;
+  container.appendChild(div);
+}
+document.querySelectorAll('[data-add]').forEach(btn => {
+  btn.addEventListener('click', () => { addPanel(btn.dataset.add); saveFormDraft(); });
+});
+// Start with one row each
+addPanel('fire');
+addPanel('pa');
+
+// ----- PREFILL shared -----
+TF_prefillShared(['project_number', 'project_name', 'customer_name', 'handover_date']);
+
+// ----- Restore repeater rows from draft BEFORE restoring field values -----
+(function restoreRepeaterRows() {
+  let draft;
+  try { draft = JSON.parse(sessionStorage.getItem('tf_handover_draft_' + FORM_TYPE) || '{}'); }
+  catch (_) { return; }
+  ['fire', 'pa'].forEach(type => {
+    const models = draft[type + '_model'];
+    // draft stores repeated fields; if more than 1 row was saved, add the extra rows
+    if (Array.isArray(models) && models.length > 1) {
+      for (let i = 1; i < models.length; i++) addPanel(type);
+    }
+  });
+})();
+
+// ----- DRAFT restore + autosave -----
+TF_restoreForm(FORM_TYPE);
+TF_autosaveForm(FORM_TYPE, formEl);
+function saveFormDraft() {
+  // manual trigger for repeater changes
+  formEl.dispatchEvent(new Event('change', { bubbles: true }));
+}
+
+// ----- SIGNATURE drafts -----
+TF_restoreSignatures(pads, TF_loadSignatureDraft(FORM_TYPE));
+function syncSignatureDraft() {
+  setTimeout(() => TF_saveSignatureDraft(FORM_TYPE, TF_getSignatures(pads)), 50);
+}
+document.querySelectorAll('.signature-pad').forEach(block => block.addEventListener('pointerup', syncSignatureDraft));
+document.querySelectorAll('.signature-clear').forEach(btn => btn.addEventListener('click', syncSignatureDraft));
+
+// ----- DATA controls (lock + clear) -----
+TF_initDataControls(FORM_TYPE, function() {
+  Object.values(pads).forEach(p => p.clear());
+});
+
+// ----- VALIDATORS -----
+TF_initValidators();
+
+refreshTabBadges();
+
+// ----- SUBMIT -----
+const WEBHOOK_URL = 'https://hook.eu2.make.com/REPLACE_WITH_YOUR_HANDOVER_WEBHOOK';
+let lastPayload = null;
+
+formEl.addEventListener('submit', async e => {
+  e.preventDefault();
+
+  // Validate names + IDs
+  const validation = TF_validateForm(formEl);
+  if (!validation.valid) {
+    TF_toast(validation.errors[0]);
+    return;
+  }
+
+  // Required signatures
+  const missing = [];
+  if (pads.customer.isEmpty()) missing.push('הלקוח');
+  if (pads.execution.isEmpty()) missing.push('נציג ביצוע');
+  if (pads.service.isEmpty()) missing.push('נציג שירות');
+  if (missing.length) {
+    TF_toast('יש להוסיף חתימות חובה: ' + missing.join(', '));
+    switchTab('t4');
+    return;
+  }
+
+  // Collect data (including array fields)
+  const data = {};
+  const fd = new FormData(formEl);
+  const arrayKeys = {};
+  fd.forEach((v, k) => {
+    if (k.indexOf('[]') > -1) {
+      const name = k.replace('[]', '');
+      if (!arrayKeys[name]) arrayKeys[name] = [];
+      arrayKeys[name].push(v);
+    } else {
+      data[k] = v;
+    }
+  });
+  Object.keys(arrayKeys).forEach(k => { data[k] = arrayKeys[k]; });
+  formEl.querySelectorAll('input[type="checkbox"]').forEach(cb => { if (cb.name) data[cb.name] = cb.checked; });
+
+  data.signatures = {
+    customer: pads.customer.toDataURL(),
+    execution: pads.execution.toDataURL(),
+    service: pads.service.toDataURL()
+  };
+
+  const payload = { form_type: 'service', submitted_at: new Date().toISOString(), data: data };
+  const btn = e.submitter;
+  if (btn) btn.disabled = true;
+
+  try {
+    if (WEBHOOK_URL.includes('REPLACE_WITH')) {
+      console.log('[Dry run] Payload:', payload);
+    } else {
+      const res = await fetch(WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+    }
+    TF_markSubmitted('service');
+    lastPayload = payload;
+    document.getElementById('successBanner').classList.add('show');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  } catch (err) {
+    console.error(err);
+    TF_toast('שגיאה בשליחה - נסה שוב');
+    if (btn) btn.disabled = false;
+  }
+});
+
+// ----- PDF -----
+document.getElementById('downloadPdfBtn').addEventListener('click', () => {
+  if (!lastPayload) { TF_toast('אין נתונים ליצירת PDF'); return; }
+  const d = lastPayload.data;
+
+  const ynText = v => v === 'yes' ? 'כן' : (v === 'no' ? 'לא' : '—');
+  const statusText = v => ({not_done:'לא בוצעה', ok:'תקין', findings:'ליקויים'})[v] || '—';
+
+  // Build systems summary
+  const sysRows = [];
+  if (d.sys_fire) sysRows.push(['מערכת גילוי אש:', ynText(d.sys_fire)]);
+  if (d.sys_pa) sysRows.push(['מערכת כריזה:', ynText(d.sys_pa)]);
+  if (d.sys_smoke) sysRows.push(['פאנל ניהול עשן:', ynText(d.sys_smoke)]);
+  if (d.sys_phone) sysRows.push(['טלפון כבאים:', ynText(d.sys_phone)]);
+  if (d.sys_shelter) sysRows.push(['אינטרקום מחסה:', ynText(d.sys_shelter)]);
+  if (d.sys_intercom) sysRows.push(['מערכת אינטרקום:', ynText(d.sys_intercom)]);
+
+  TF_generatePDF({
+    title: 'טופס מסירת פרויקט לשירות',
+    formNumber: '03 / 03',
+    filename: 'Telefire_Service_' + (d.project_number || 'handover') + '.pdf',
+    sections: [
+      { title: 'פרטי הפרויקט', rows: [
+        ['מס\' פרויקט:', d.project_number],
+        ['שם הפרויקט:', d.project_name],
+        ['שם הלקוח:', d.customer_name],
+        ['כתובת:', d.project_address],
+        ['תאריך מסירה:', d.handover_date],
+        ['מנהל פרויקט:', d.project_manager]
+      ]},
+      { title: 'מערכות בפרויקט', rows: sysRows.length ? sysRows : [['—', 'לא סומנו מערכות']] },
+      { title: 'כמויות', rows: [
+        ['מספר התקנים:', d.device_count],
+        ['מספר כיבויים:', d.suppression_count],
+        ['קבלן גילוי אש:', d.fire_contractor]
+      ]},
+      { title: 'פרטי לקוח שירות', rows: [
+        ['שם לקוח:', d.service_customer_name],
+        ['ח.פ / ת.ז:', d.service_customer_id],
+        ['כתובת אתר:', d.service_site_address],
+        ['איש קשר:', d.service_contact_name],
+        ['טלפון:', d.service_contact_phone],
+        ['מייל:', d.service_contact_email]
+      ]},
+      { title: 'בדיקות טכניות', rows: [
+        ['בדיקת מעבדה:', statusText(d.lab_status)],
+        ['בדיקת אינטגרציה:', statusText(d.integration_status)],
+        ['אינטגרציה מדגמית:', statusText(d.sample_status)]
+      ]},
+      { title: 'מידע נוסף', rows: [
+        ['חובר MCOM:', ynText(d.mcom_connected)],
+        ['קוד 922003:', ynText(d.code_changed)]
+      ], paragraphs: d.general_notes ? ['הערות: ' + d.general_notes] : [] }
+    ],
+    signatures: [
+      { label: 'הלקוח', name: d.customer_signer_name, id: '', image: d.signatures.customer },
+      { label: 'נציג ביצוע', name: d.execution_signer_name, id: '', image: d.signatures.execution },
+      { label: 'נציג שירות', name: d.service_signer_name, id: '', image: d.signatures.service }
+    ]
+  }, function(ok) {
+    TF_toast(ok ? 'PDF נוצר בהצלחה ✓' : 'שגיאה ביצירת PDF', ok ? 'success' : '');
+  });
+});
+</script>
+
+</body>
+</html>
