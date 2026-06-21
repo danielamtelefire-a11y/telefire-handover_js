@@ -88,9 +88,17 @@
      * If `preserve` is true, the existing drawing is kept (useful on window resize).
      */
     _resize(preserve) {
-      const data = preserve && !this.empty ? this.canvas.toDataURL() : null;
-      const ratio = window.devicePixelRatio || 1;
       const rect = this.canvas.getBoundingClientRect();
+      // If the pad is hidden (0x0, e.g. inside an inactive tab), skip -
+      // resizing to 0 would wipe the canvas. We'll resize when it's shown.
+      if (rect.width === 0 || rect.height === 0) return;
+
+      // Safely capture existing drawing (toDataURL throws on 0-size canvas)
+      let data = null;
+      if (preserve && !this.empty && this.canvas.width > 0 && this.canvas.height > 0) {
+        try { data = this.canvas.toDataURL(); } catch (_) { data = null; }
+      }
+      const ratio = window.devicePixelRatio || 1;
       this.canvas.width = rect.width * ratio;
       this.canvas.height = rect.height * ratio;
       this.ctx.scale(ratio, ratio);
@@ -120,6 +128,15 @@
         if (this.placeholder) this.placeholder.style.display = 'none';
       };
       img.src = dataURL;
+    }
+
+    /**
+     * Public resize - call when a pad becomes visible after being hidden
+     * (e.g. switching to a tab). Canvases initialized while display:none
+     * have 0x0 dimensions and can't be drawn on until resized.
+     */
+    resize() {
+      this._resize(true);
     }
 
     /** Returns true if the user hasn't signed yet. */
