@@ -691,14 +691,32 @@ document.getElementById('downloadPdfBtn').addEventListener('click', () => {
   const ynText = v => v === 'yes' ? 'כן' : (v === 'no' ? 'לא' : '—');
   const statusText = v => ({not_done:'לא בוצעה', ok:'תקין', findings:'ליקויים'})[v] || '—';
 
-  // Build systems summary
+  // Build systems summary (incl. control-panel rows for "yes" systems)
   const sysRows = [];
-  if (d.sys_fire) sysRows.push(['מערכת גילוי אש:', ynText(d.sys_fire)]);
-  if (d.sys_pa) sysRows.push(['מערכת כריזה:', ynText(d.sys_pa)]);
+  function pushSystem(label, val, modelArr, serialArr) {
+    sysRows.push([label, ynText(val)]);
+    if (val !== 'yes') return;
+    const models = [].concat(modelArr || []);
+    const serials = [].concat(serialArr || []);
+    models.forEach(function(m, i) {
+      const model = (m || '').trim();
+      const serial = (serials[i] || '').trim();
+      if (!model && !serial) return; // skip empty repeater rows
+      const val2 = (model || '—') + (serial ? '  |  מס\' סידורי: ' + serial : '');
+      sysRows.push(['    • רכזת ' + (i + 1) + ':', val2]);
+    });
+  }
+  if (d.sys_fire) pushSystem('מערכת גילוי אש:', d.sys_fire, d.fire_model, d.fire_serial);
+  if (d.sys_pa) pushSystem('מערכת כריזה:', d.sys_pa, d.pa_model, d.pa_serial);
   if (d.sys_smoke) sysRows.push(['פאנל ניהול עשן:', ynText(d.sys_smoke)]);
   if (d.sys_phone) sysRows.push(['טלפון כבאים:', ynText(d.sys_phone)]);
   if (d.sys_shelter) sysRows.push(['אינטרקום מחסה:', ynText(d.sys_shelter)]);
-  if (d.sys_intercom) sysRows.push(['מערכת אינטרקום:', ynText(d.sys_intercom)]);
+  if (d.sys_intercom) {
+    sysRows.push(['מערכת אינטרקום:', ynText(d.sys_intercom)]);
+    if (d.sys_intercom === 'yes' && d.intercom_model && d.intercom_model.trim()) {
+      sysRows.push(['    • דגם:', d.intercom_model.trim()]);
+    }
+  }
 
   TF_generatePDF({
     title: 'טופס מסירת פרויקט לשירות',
