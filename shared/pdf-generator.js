@@ -1,5 +1,5 @@
 /* ============================================================
-   TELEFIRE PDF GENERATOR - SHARED MODULE (v2)
+   TELEFIRE PDF GENERATOR - SHARED MODULE (v3)
    Used by: form1, form2, form3
 
    v2 CHANGE: Fixed Hebrew gibberish.
@@ -7,6 +7,16 @@
    rendering text directly, we now build a styled hidden HTML
    element (with real Hebrew + RTL), capture it with html2canvas
    as a high-resolution image, and embed that image into the PDF.
+
+   v3 CHANGE: Optional embedded machine-readable data (referent
+   handoff feature). If config.embedData is set, the resulting
+   .pdf file gets a small marker block appended after its own
+   %%EOF - the file still opens/prints normally in any PDF viewer,
+   but shared/theme.js's TF_applyProjectFile() can pull the data
+   back out of it. This lets a field technician keep using the one
+   PDF-download button she already knows, while the office referent
+   can load that exact file to auto-fill the same form. See
+   shared/theme.js section 5 for the full explanation.
 
    REQUIRES both libraries loaded via CDN in the HTML page:
    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -56,6 +66,14 @@
     html += '<div style="padding: 28px 32px 8px;">';
     html += '<div style="font-size: 24px; font-weight: 800; color: #CC2128;">' + config.title + '</div>';
     html += '</div>';
+
+    // ===== Draft banner (v3) - shown when the form hasn't been submitted yet =====
+    if (config.isDraft) {
+      html += '<div style="margin: 0 32px 8px;">';
+      html += '<div style="display: inline-block; padding: 8px 16px; background: #FEF3C7; border: 1px solid #F59E0B; border-radius: 6px; font-size: 12px; font-weight: 700; color: #92400E;">';
+      html += '⚠️ טיוטת עבודה - הטופס טרם נשלח באופן סופי';
+      html += '</div></div>';
+    }
 
     // ===== Sections =====
     html += '<div style="padding: 0 32px 24px;">';
@@ -129,12 +147,16 @@
 
   /**
    * Generates and downloads a branded summary PDF with full Hebrew support.
-   * SAME API as v1 - existing forms don't need parameter changes.
+   * SAME API as v1/v2 - existing forms don't need parameter changes.
    *
    * @param {Object} config
    * @param {string} config.title        - Form title in Hebrew
    * @param {string} config.formNumber   - e.g. '01 / 03'
    * @param {string} config.filename     - download filename
+   * @param {boolean} [config.isDraft]   - shows a "draft" banner (v3)
+   * @param {Object} [config.embedData]  - machine-readable payload to embed
+   *                                       invisibly in the PDF bytes (v3) -
+   *                                       see shared/theme.js TF_encodeEmbeddedData
    * @param {Array}  config.sections     - [{ title, rows: [[label, value]], paragraphs: [str] }]
    * @param {Array}  [config.signatures] - [{ label, name, id, image }]
    * @param {Function} [callback]        - called with (success: boolean) when done
@@ -210,7 +232,26 @@
           }
         }
 
-        pdf.save(config.filename || 'telefire-handover.pdf');
+        // ===== v3: build the final file - optionally with embedded data =====
+        const pdfArrayBuffer = pdf.output('arraybuffer');
+        let finalBlob;
+        if (config.embedData && window.TF_encodeEmbeddedData) {
+          const marker = window.TF_encodeEmbeddedData(config.embedData);
+          const markerBytes = new TextEncoder().encode(marker);
+          finalBlob = new Blob([pdfArrayBuffer, markerBytes], { type: 'application/pdf' });
+        } else {
+          finalBlob = new Blob([pdfArrayBuffer], { type: 'application/pdf' });
+        }
+
+        const url = URL.createObjectURL(finalBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = config.filename || 'telefire-handover.pdf';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 2000);
+
         if (callback) callback(true);
       }).catch(err => {
         console.error('[TF_generatePDF] html2canvas failed', err);
