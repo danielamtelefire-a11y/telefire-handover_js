@@ -415,51 +415,56 @@
   };
 
   // ============================================================
-  // 5. PROJECT FILE EXPORT / IMPORT  --  NEW
+  // 5. PROJECT DATA HANDOFF (cross-device, embedded in the PDF)  --  NEW
   //
-  //    Purpose: a field technician fills in whatever data is
-  //    available on site and exports ONE JSON file (all forms +
-  //    shared fields + signatures + submission status). The office
-  //    referent then opens the relevant form page DIRECTLY (no need
-  //    to go back to the landing page first) and clicks "טעינת קובץ"
-  //    right there - every field, repeater row and signature on that
-  //    page fills in automatically from the technician's file, and
-  //    she completes whatever was left blank, then exports again.
+  //    Purpose: a field technician fills in whatever data is available
+  //    on site and downloads the SAME "PDF summary" file she already
+  //    knows how to produce - nothing new for her to learn, no second
+  //    file, no JSON. The machine-readable data (every field, every
+  //    repeater row, signatures, submission status) rides along
+  //    invisibly INSIDE that one .pdf file, appended after the PDF's
+  //    own %%EOF marker. PDF viewers only read up to what their xref/
+  //    trailer table points to, so the extra trailing bytes are
+  //    invisible to anyone who just opens or prints the file normally.
   //
-  //    Same JSON schema as the landing page's existing export/import
-  //    (schema: 'telefire-handover-project'), so files produced on
-  //    any page can be loaded on any other page.
+  //    The office referent opens the relevant form page DIRECTLY (no
+  //    need to go back to the landing page first), clicks "טעינת קובץ
+  //    מהשטח" and picks that SAME .pdf the technician sent her -
+  //    every field, repeater row and signature on that page fills in
+  //    automatically, and she completes whatever was left blank, then
+  //    exports the same way again.
   //
-  //    TF_applyProjectFile() only writes to sessionStorage - it does
-  //    NOT touch the DOM. Callers reload the page afterwards so the
-  //    existing draft-restore flow (repeater rows, signatures, tab
-  //    badges, system-card highlighting) runs exactly as it does on
-  //    a normal page load. This avoids re-implementing that logic
-  //    per form page.
+  //    TF_applyProjectFile() auto-detects the file type (PDF-with-
+  //    embedded-data vs a plain .json, for backward compatibility with
+  //    the landing page's existing JSON export/import) and only writes
+  //    to sessionStorage - it does NOT touch the DOM. Callers refresh
+  //    the page afterwards so the existing draft-restore flow (repeater
+  //    rows, signatures, tab badges, system-card highlighting) runs
+  //    exactly as it does on a normal page load.
+  //
+  //    TF_encodeEmbeddedData() is called by shared/pdf-generator.js -
+  //    it does not build the PDF itself (that stays form-specific),
+  //    it only wraps the payload in the marker text pdf-generator.js
+  //    appends to the file it produces.
   // ============================================================
 
   const PROJECT_SCHEMA = 'telefire-handover-project';
   const PROJECT_FORMS = ['fire-system', 'warranty', 'service'];
+  const PDF_EMBED_START = '%%TF-DATA-START%%';
+  const PDF_EMBED_END = '%%TF-DATA-END%%';
 
   function readDraftRaw(type) {
     try { return JSON.parse(sessionStorage.getItem(DRAFT_PREFIX + type) || 'null'); }
     catch (_) { return null; }
   }
 
-  function valueHasData(v) {
-    if (Array.isArray(v)) return v.some(x => String(x).trim() !== '');
-    return v !== '' && v !== false && v != null;
+  // btoa/atob only handle Latin1 - these two helpers round-trip arbitrary
+  // UTF-8 text (Hebrew field values) through base64 safely.
+  function utf8ToBase64(str) {
+    return btoa(unescape(encodeURIComponent(str)));
   }
-
-  /** True if a form has any saved draft data, a saved signature, or was submitted. */
-  function draftHasData(type) {
-    const d = readDraftRaw(type);
-    if (d && Object.keys(d).some(k => valueHasData(d[k]))) return true;
-    const status = window.TF_getStatus();
-    if (status[type] && status[type].submitted) return true;
-    const sig = window.TF_loadSignatureDraft(type);
-    if (sig && Object.keys(sig).some(k => sig[k])) return true;
-    return false;
+  function base64ToUtf8(b64) {
+    return decodeURIComponent(escape(atob(b64)));
   }
 
   /**
@@ -488,33 +493,50 @@
     };
   };
 
-  /** Triggers a browser download of a project export object as a .json file. */
-  window.TF_downloadProjectFile = function(exportObj) {
-    const s = exportObj.shared || {};
-    const raw = (s.project_number || s.project_name || 'project') + '';
-    const safe = raw.replace(/[^\w\u0590-\u05FF\-]+/g, '_').slice(0, 40) || 'project';
-    const blob = new Blob([JSON.stringify(exportObj, null, 2)], { type: 'application/json' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'Telefire_Project_' + safe + '.json';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  /**
+   * Wraps a project export object as the marker text that gets appended
+   * to a generated PDF's raw bytes. Used by shared/pdf-generator.js.
+   * @param {Object} exportObj - result of TF_buildProjectExport()
+   * @returns {string}
+   */
+  window.TF_encodeEmbeddedData = function(exportObj) {
+    return '\n' + PDF_EMBED_START + '\n' + utf8ToBase64(JSON.stringify(exportObj)) + '\n' + PDF_EMBED_END + '\n';
   };
 
   /**
-   * Reads a project JSON File, validates its schema, and applies its
-   * contents into sessionStorage (shared fields + every form's draft,
-   * signatures and submitted status found in the file).
+   * Reads a project file (a .pdf with embedded data, OR a plain .json -
+   * for backward compatibility with the landing page's export/import),
+   * validates its schema, and applies its contents into sessionStorage
+   * (shared fields + every form's draft, signatures and submitted
+   * status found in the file).
    * @param {File} file
    * @param {Function} callback - called with { ok: boolean, error?: string, data?: object }
    */
   window.TF_applyProjectFile = function(file, callback) {
     const reader = new FileReader();
     reader.onload = () => {
+      const bytes = new Uint8Array(reader.result);
+      // "%PDF" magic bytes
+      const isPdf = bytes.length > 4 && bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46;
+
+      let jsonText;
+      if (isPdf) {
+        const text = new TextDecoder('utf-8', { fatal: false }).decode(bytes);
+        const startIdx = text.indexOf(PDF_EMBED_START);
+        const endIdx = text.indexOf(PDF_EMBED_END);
+        if (startIdx === -1 || endIdx === -1 || endIdx < startIdx) {
+          callback({ ok: false, error: 'no_embedded_data' });
+          return;
+        }
+        const b64 = text.slice(startIdx + PDF_EMBED_START.length, endIdx).trim();
+        try { jsonText = base64ToUtf8(b64); }
+        catch (_) { callback({ ok: false, error: 'bad_embedded_data' }); return; }
+      } else {
+        jsonText = new TextDecoder('utf-8').decode(bytes);
+      }
+
       let data;
-      try { data = JSON.parse(reader.result); }
+      try { data = JSON.parse(jsonText); }
       catch (_) { callback({ ok: false, error: 'not_json' }); return; }
       if (!data || data.schema !== PROJECT_SCHEMA) {
         callback({ ok: false, error: 'wrong_schema' });
@@ -538,7 +560,7 @@
       try { sessionStorage.setItem(STATUS_KEY, JSON.stringify(status)); } catch (_) {}
       callback({ ok: true, data: data });
     };
-    reader.readAsText(file);
+    reader.readAsArrayBuffer(file);
   };
 
   /**
@@ -574,28 +596,18 @@
       window.TF_applyProjectFile(file, (result) => {
         input.value = '';
         if (!result.ok) {
-          window.TF_toast(result.error === 'wrong_schema' ? 'זה לא קובץ פרויקט של טלפייר' : 'הקובץ אינו JSON תקין');
+          const messages = {
+            wrong_schema: 'זה לא קובץ פרויקט של טלפייר',
+            no_embedded_data: 'ה-PDF הזה לא מכיל נתונים לטעינה (הופק לפני השדרוג, או שאינו PDF שהופק מהמערכת)',
+            bad_embedded_data: 'לא ניתן לקרוא את הנתונים בתוך ה-PDF',
+            not_json: 'הקובץ פגום או לא בפורמט תקין'
+          };
+          window.TF_toast(messages[result.error] || 'שגיאה בטעינת הקובץ');
           return;
         }
         window.TF_toast('הנתונים נטענו ✓', 'success');
         setTimeout(() => { window.location.href = window.location.href; }, 500);
       });
-    });
-  };
-
-  /**
-   * Wires an "export project file" button - one click downloads every
-   * form that currently has data (falls back to all 3 forms if none do).
-   * @param {string} btnId
-   */
-  window.TF_initProjectExportButton = function(btnId) {
-    const btn = document.getElementById(btnId);
-    if (!btn) return;
-    btn.addEventListener('click', () => {
-      const withData = PROJECT_FORMS.filter(draftHasData);
-      const exportObj = window.TF_buildProjectExport(withData.length ? withData : PROJECT_FORMS);
-      window.TF_downloadProjectFile(exportObj);
-      window.TF_toast('הקובץ יוצא ✓', 'success');
     });
   };
 
