@@ -7,6 +7,7 @@
    2. Shared form fields across pages (sessionStorage)
    3. Form submission status tracking (sessionStorage)
    4. Toast notifications
+   5. Project file export/import (cross-device handoff) - NEW
    ============================================================ */
 
 (function(window) {
@@ -411,6 +412,191 @@
     el.className = 'toast ' + (type || '');
     el.classList.add('show');
     setTimeout(() => el.classList.remove('show'), 3500);
+  };
+
+  // ============================================================
+  // 5. PROJECT FILE EXPORT / IMPORT  --  NEW
+  //
+  //    Purpose: a field technician fills in whatever data is
+  //    available on site and exports ONE JSON file (all forms +
+  //    shared fields + signatures + submission status). The office
+  //    referent then opens the relevant form page DIRECTLY (no need
+  //    to go back to the landing page first) and clicks "טעינת קובץ"
+  //    right there - every field, repeater row and signature on that
+  //    page fills in automatically from the technician's file, and
+  //    she completes whatever was left blank, then exports again.
+  //
+  //    Same JSON schema as the landing page's existing export/import
+  //    (schema: 'telefire-handover-project'), so files produced on
+  //    any page can be loaded on any other page.
+  //
+  //    TF_applyProjectFile() only writes to sessionStorage - it does
+  //    NOT touch the DOM. Callers reload the page afterwards so the
+  //    existing draft-restore flow (repeater rows, signatures, tab
+  //    badges, system-card highlighting) runs exactly as it does on
+  //    a normal page load. This avoids re-implementing that logic
+  //    per form page.
+  // ============================================================
+
+  const PROJECT_SCHEMA = 'telefire-handover-project';
+  const PROJECT_FORMS = ['fire-system', 'warranty', 'service'];
+
+  function readDraftRaw(type) {
+    try { return JSON.parse(sessionStorage.getItem(DRAFT_PREFIX + type) || 'null'); }
+    catch (_) { return null; }
+  }
+
+  function valueHasData(v) {
+    if (Array.isArray(v)) return v.some(x => String(x).trim() !== '');
+    return v !== '' && v !== false && v != null;
+  }
+
+  /** True if a form has any saved draft data, a saved signature, or was submitted. */
+  function draftHasData(type) {
+    const d = readDraftRaw(type);
+    if (d && Object.keys(d).some(k => valueHasData(d[k]))) return true;
+    const status = window.TF_getStatus();
+    if (status[type] && status[type].submitted) return true;
+    const sig = window.TF_loadSignatureDraft(type);
+    if (sig && Object.keys(sig).some(k => sig[k])) return true;
+    return false;
+  }
+
+  /**
+   * Builds the exportable project object for the given form types.
+   * @param {string[]} [types] - defaults to all 3 forms
+   */
+  window.TF_buildProjectExport = function(types) {
+    const use = (types && types.length) ? types : PROJECT_FORMS;
+    const status = window.TF_getStatus();
+    const forms = {};
+    use.forEach(type => {
+      let sig = window.TF_loadSignatureDraft(type);
+      if (sig && !Object.keys(sig).length) sig = null;
+      forms[type] = {
+        draft: readDraftRaw(type),
+        sig: sig,
+        submitted: !!(status[type] && status[type].submitted)
+      };
+    });
+    return {
+      schema: PROJECT_SCHEMA,
+      version: 1,
+      exported_at: new Date().toISOString(),
+      shared: window.TF_getShared(),
+      forms: forms
+    };
+  };
+
+  /** Triggers a browser download of a project export object as a .json file. */
+  window.TF_downloadProjectFile = function(exportObj) {
+    const s = exportObj.shared || {};
+    const raw = (s.project_number || s.project_name || 'project') + '';
+    const safe = raw.replace(/[^\w\u0590-\u05FF\-]+/g, '_').slice(0, 40) || 'project';
+    const blob = new Blob([JSON.stringify(exportObj, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'Telefire_Project_' + safe + '.json';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  };
+
+  /**
+   * Reads a project JSON File, validates its schema, and applies its
+   * contents into sessionStorage (shared fields + every form's draft,
+   * signatures and submitted status found in the file).
+   * @param {File} file
+   * @param {Function} callback - called with { ok: boolean, error?: string, data?: object }
+   */
+  window.TF_applyProjectFile = function(file, callback) {
+    const reader = new FileReader();
+    reader.onload = () => {
+      let data;
+      try { data = JSON.parse(reader.result); }
+      catch (_) { callback({ ok: false, error: 'not_json' }); return; }
+      if (!data || data.schema !== PROJECT_SCHEMA) {
+        callback({ ok: false, error: 'wrong_schema' });
+        return;
+      }
+      if (data.shared) window.TF_setShared(data.shared);
+      const forms = data.forms || {};
+      Object.keys(forms).forEach(type => {
+        const f = forms[type] || {};
+        if (f.draft) {
+          try { sessionStorage.setItem(DRAFT_PREFIX + type, JSON.stringify(f.draft)); } catch (_) {}
+        }
+        if (f.sig) window.TF_saveSignatureDraft(type, f.sig);
+      });
+      const status = window.TF_getStatus();
+      Object.keys(forms).forEach(type => {
+        if (forms[type] && forms[type].submitted) {
+          status[type] = { submitted: true, at: forms[type].at || null };
+        }
+      });
+      try { sessionStorage.setItem(STATUS_KEY, JSON.stringify(status)); } catch (_) {}
+      callback({ ok: true, data: data });
+    };
+    reader.readAsText(file);
+  };
+
+  /**
+   * Wires an "import project file" button + its hidden file input.
+   * On a valid file, applies it to sessionStorage and refreshes the
+   * current page so the normal restore-on-load flow re-renders
+   * everything (repeater rows, signatures, tab badges, etc).
+   *
+   * IMPORTANT: this refresh must be a same-URL NAVIGATION, not
+   * window.location.reload(). A real reload sets
+   * performance.getEntriesByType('navigation')[0].type to 'reload',
+   * which (by design, see TF_restoreForm) makes the page ask "found a
+   * saved draft - continue or start clean?" - confusing right after
+   * the user just explicitly chose to load a file. Re-assigning
+   * location.href to itself is classified as a 'navigate', which
+   * TF_restoreForm always restores silently, matching the "moving
+   * between forms" behavior this feature is meant to feel like.
+   * @param {string} btnId
+   * @param {string} fileInputId
+   */
+  window.TF_initProjectImportButton = function(btnId, fileInputId) {
+    const btn = document.getElementById(btnId);
+    const input = document.getElementById(fileInputId);
+    if (!btn || !input) return;
+    btn.addEventListener('click', () => input.click());
+    input.addEventListener('change', () => {
+      const file = input.files && input.files[0];
+      if (!file) return;
+      if (!confirm('טעינת הקובץ תחליף את הנתונים הנוכחיים בטופס זה (ובשאר הטפסים אם קיימים בקובץ). להמשיך?')) {
+        input.value = '';
+        return;
+      }
+      window.TF_applyProjectFile(file, (result) => {
+        input.value = '';
+        if (!result.ok) {
+          window.TF_toast(result.error === 'wrong_schema' ? 'זה לא קובץ פרויקט של טלפייר' : 'הקובץ אינו JSON תקין');
+          return;
+        }
+        window.TF_toast('הנתונים נטענו ✓', 'success');
+        setTimeout(() => { window.location.href = window.location.href; }, 500);
+      });
+    });
+  };
+
+  /**
+   * Wires an "export project file" button - one click downloads every
+   * form that currently has data (falls back to all 3 forms if none do).
+   * @param {string} btnId
+   */
+  window.TF_initProjectExportButton = function(btnId) {
+    const btn = document.getElementById(btnId);
+    if (!btn) return;
+    btn.addEventListener('click', () => {
+      const withData = PROJECT_FORMS.filter(draftHasData);
+      const exportObj = window.TF_buildProjectExport(withData.length ? withData : PROJECT_FORMS);
+      window.TF_downloadProjectFile(exportObj);
+      window.TF_toast('הקובץ יוצא ✓', 'success');
+    });
   };
 
 })(window);
