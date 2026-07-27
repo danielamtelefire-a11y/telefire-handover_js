@@ -97,8 +97,20 @@
 
   <span class="form-badge">📋 טופס 03 / 03</span>
 
+  <!-- ================================================================
+       NEW: referent handoff toolbar.
+       Lets the office referent (רפרנטית) open THIS form directly and
+       load the JSON file a field technician exported (from any page,
+       any device) - every field, repeater row and signature on this
+       page fills in automatically. She can then complete whatever the
+       technician left blank and export again from right here, with no
+       need to go back to the landing page first.
+       ================================================================ -->
   <div class="skip-nav">
     <button type="button" id="clearFormBtn" class="skip-nav-btn">🗑️ נקה טופס</button>
+    <button type="button" id="importProjectBtn" class="skip-nav-btn">⬆️ טעינת קובץ מהשטח</button>
+    <button type="button" id="exportProjectBtn" class="skip-nav-btn">⬇️ ייצוא קובץ</button>
+    <input type="file" id="importProjectFile" accept="application/json,.json" style="display:none">
     <a href="form1-fire-system.html" class="skip-nav-btn">⏮️ מסירת גילוי אש</a>
     <a href="form2-warranty.html" class="skip-nav-btn">⏮️ תעודת אחריות</a>
   </div>
@@ -611,6 +623,13 @@ TF_initDataControls(FORM_TYPE, function() {
 
 // ----- VALIDATORS -----
 TF_initValidators();
+
+// ----- PROJECT FILE IMPORT / EXPORT (referent workflow) -- NEW -----
+// Lets the office referent load the technician's exported JSON straight
+// on this page (⬆️ טעינת קובץ מהשטח) and export the completed data again
+// (⬇️ ייצוא קובץ) without needing to go back to the landing page.
+TF_initProjectImportButton('importProjectBtn', 'importProjectFile');
+TF_initProjectExportButton('exportProjectBtn');
 
 refreshTabBadges();
 
