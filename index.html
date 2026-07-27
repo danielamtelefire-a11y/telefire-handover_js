@@ -43,6 +43,7 @@
     <div>
       תהליך מסירת פרויקט ללקוח כולל <strong>3 טפסים</strong>.
       מלא את פרטי הפרויקט פעם אחת — הם יועברו אוטומטית לכל הטפסים.
+      אם קיבלת PDF ממולא (חלקית או במלואו) מטכנאי בשטח, טען אותו כאן ← "טעינת קובץ" - הכל יתמלא אוטומטית, בלי להקליד פעמיים.
     </div>
   </div>
 
@@ -52,7 +53,7 @@
       פרטי הפרויקט
       <button type="button" id="exportBtn" class="signature-clear" style="margin-right:auto;">⬇️ ייצוא קובץ</button>
       <button type="button" id="importBtn" class="signature-clear">⬆️ טעינת קובץ</button>
-      <input type="file" id="importFile" accept="application/json,.json" style="display:none">
+      <input type="file" id="importFile" accept="application/pdf,.pdf,application/json,.json" style="display:none">
       <button type="button" id="clearFormBtn" class="signature-clear">🗑️ נקה נתונים</button>
       <span class="card-title-num">SHARED</span>
     </div>
@@ -292,7 +293,15 @@ document.querySelectorAll('.handover-card').forEach(card => {
   });
 });
 
-// ===== PROJECT JSON EXPORT / IMPORT =====
+// ===== PROJECT FILE EXPORT / IMPORT =====
+// NEW: import now goes through the shared TF_applyProjectFile() (theme.js),
+// which auto-detects a technician's PDF-with-embedded-data OR a plain .json,
+// so loading a file HERE on the dashboard fills the shared project fields
+// immediately - unblocking the cards above without retyping anything, and
+// pre-fills any of the 3 forms' own drafts that the file contains too.
+// Export stays a plain .json "everything" backup (pick which forms to
+// include) - useful for the office to keep a full record, separate from
+// the single-form PDF each form's own "ייצוא PDF למשרד" button produces.
 (function(){
   const STATUS_K = 'tf_handover_status';
   const DRAFT_P  = 'tf_handover_draft_';
@@ -353,7 +362,7 @@ document.querySelectorAll('.handover-card').forEach(card => {
     return { box, close };
   }
 
-  // ---------- EXPORT ----------
+  // ---------- EXPORT (unchanged - plain JSON "everything" backup) ----------
   document.getElementById('exportBtn').addEventListener('click', () => {
     const rows = PROJECT_FORMS.map(f => {
       const on = formHasData(f.type) ? 'checked' : '';
@@ -378,61 +387,8 @@ document.querySelectorAll('.handover-card').forEach(card => {
     });
   });
 
-  // ---------- IMPORT ----------
-  const fileInput = document.getElementById('importFile');
-  document.getElementById('importBtn').addEventListener('click', () => fileInput.click());
-  fileInput.addEventListener('change', () => {
-    const file = fileInput.files && fileInput.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      let data;
-      try { data = JSON.parse(reader.result); }
-      catch(_){ TF_toast('הקובץ אינו JSON תקין'); fileInput.value = ''; return; }
-      if (!data || data.schema !== 'telefire-handover-project') {
-        TF_toast('זה לא קובץ פרויקט של טלפייר'); fileInput.value = ''; return;
-      }
-      const d = dialog(
-        '<div class="draft-dialog-icon">⬆️</div>' +
-        '<div class="draft-dialog-title">טעינת קובץ פרויקט</div>' +
-        '<div class="draft-dialog-text">הטעינה תחליף את הנתונים הנוכחיים בכל הטפסים. להמשיך?</div>' +
-        '<div class="draft-dialog-actions">' +
-        '<button type="button" class="btn btn-primary" data-act="go">טען</button>' +
-        '<button type="button" class="btn btn-secondary" data-act="cancel">ביטול</button></div>'
-      );
-      d.box.querySelector('[data-act="cancel"]').addEventListener('click', () => { d.close(); fileInput.value = ''; });
-      d.box.querySelector('[data-act="go"]').addEventListener('click', () => { d.close(); applyImport(data); fileInput.value = ''; });
-    };
-    reader.readAsText(file);
-  });
-
-  function applyImport(data){
-    if (data.shared) TF_setShared(data.shared);
-    const forms = data.forms || {};
-    Object.keys(forms).forEach(type => {
-      const f = forms[type] || {};
-      if (f.draft) { try { sessionStorage.setItem(DRAFT_P + type, JSON.stringify(f.draft)); } catch(_){} }
-      if (f.sig)   { TF_saveSignatureDraft(type, f.sig); }
-    });
-    const st = TF_getStatus();
-    Object.keys(forms).forEach(type => { if (forms[type] && forms[type].submitted) st[type] = { submitted:true }; });
-    try { sessionStorage.setItem(STATUS_K, JSON.stringify(st)); } catch(_){}
-    TF_prefillShared(SHARED_FIELDS);
-    refreshStatusBadges();
-    TF_toast('הנתונים נטענו ✓', 'success');
-  }
-
-  function refreshStatusBadges(){
-    const status = TF_getStatus();
-    document.querySelectorAll('.handover-card').forEach(card => {
-      const form = card.dataset.form, badge = card.querySelector('[data-status]');
-      if (!badge) return;
-      const done = !!(status[form] && status[form].submitted);
-      badge.textContent = done ? 'נשלח ✓' : 'טרם נמסר';
-      badge.classList.toggle('status-done', done);
-      badge.classList.toggle('status-pending', !done);
-    });
-  }
+  // ---------- IMPORT (NEW - delegates to shared theme.js, PDF-aware) ----------
+  TF_initProjectImportButton('importBtn', 'importFile');
 })();
 </script>
 
