@@ -99,18 +99,20 @@
 
   <!-- ================================================================
        NEW: referent handoff toolbar.
-       Lets the office referent (רפרנטית) open THIS form directly and
-       load the JSON file a field technician exported (from any page,
-       any device) - every field, repeater row and signature on this
-       page fills in automatically. She can then complete whatever the
-       technician left blank and export again from right here, with no
-       need to go back to the landing page first.
+       Lets a field technician export the SAME PDF she already knows
+       how to produce - the machine-readable data rides along inside
+       that one .pdf file (see shared/pdf-generator.js + theme.js).
+       The office referent (רפרנטית) opens THIS form directly and
+       loads that PDF - every field, repeater row and signature on
+       this page fills in automatically. She then completes whatever
+       the technician left blank and exports the same way again, with
+       no need to go back to the landing page first.
        ================================================================ -->
   <div class="skip-nav">
     <button type="button" id="clearFormBtn" class="skip-nav-btn">🗑️ נקה טופס</button>
     <button type="button" id="importProjectBtn" class="skip-nav-btn">⬆️ טעינת קובץ מהשטח</button>
-    <button type="button" id="exportProjectBtn" class="skip-nav-btn">⬇️ ייצוא קובץ</button>
-    <input type="file" id="importProjectFile" accept="application/json,.json" style="display:none">
+    <button type="button" id="exportProjectBtn" class="skip-nav-btn">📤 ייצוא PDF למשרד</button>
+    <input type="file" id="importProjectFile" accept="application/pdf,.pdf,application/json,.json" style="display:none">
     <a href="form1-fire-system.html" class="skip-nav-btn">⏮️ מסירת גילוי אש</a>
     <a href="form2-warranty.html" class="skip-nav-btn">⏮️ תעודת אחריות</a>
   </div>
@@ -624,41 +626,18 @@ TF_initDataControls(FORM_TYPE, function() {
 // ----- VALIDATORS -----
 TF_initValidators();
 
-// ----- PROJECT FILE IMPORT / EXPORT (referent workflow) -- NEW -----
-// Lets the office referent load the technician's exported JSON straight
-// on this page (⬆️ טעינת קובץ מהשטח) and export the completed data again
-// (⬇️ ייצוא קובץ) without needing to go back to the landing page.
+// ----- PROJECT DATA HANDOFF (referent workflow) -- NEW -----
+// The office referent loads the technician's exported PDF straight on
+// this page (⬆️ טעינת קובץ מהשטח) - see shared/theme.js section 5 for
+// how the data travels invisibly inside that PDF.
 TF_initProjectImportButton('importProjectBtn', 'importProjectFile');
-TF_initProjectExportButton('exportProjectBtn');
 
 refreshTabBadges();
 
-// ----- SUBMIT -----
-const WEBHOOK_URL = 'https://hook.eu2.make.com/REPLACE_WITH_YOUR_HANDOVER_WEBHOOK';
-let lastPayload = null;
-
-formEl.addEventListener('submit', async e => {
-  e.preventDefault();
-
-  // Validate names + IDs
-  const validation = TF_validateForm(formEl);
-  if (!validation.valid) {
-    TF_toast(validation.errors[0]);
-    return;
-  }
-
-  // Required signatures
-  const missing = [];
-  if (pads.customer.isEmpty()) missing.push('הלקוח');
-  if (pads.execution.isEmpty()) missing.push('נציג ביצוע');
-  if (pads.service.isEmpty()) missing.push('נציג שירות');
-  if (missing.length) {
-    TF_toast('יש להוסיף חתימות חובה: ' + missing.join(', '));
-    switchTab('t4');
-    return;
-  }
-
-  // Collect data (including array fields)
+// ----- Collect current field values into a flat data object -----
+// Shared by the submit handler (final, validated submission) and the
+// "ייצוא PDF למשרד" button (anytime, even with an incomplete form).
+function collectFormData() {
   const data = {};
   const fd = new FormData(formEl);
   const arrayKeys = {};
@@ -673,40 +652,20 @@ formEl.addEventListener('submit', async e => {
   });
   Object.keys(arrayKeys).forEach(k => { data[k] = arrayKeys[k]; });
   formEl.querySelectorAll('input[type="checkbox"]').forEach(cb => { if (cb.name) data[cb.name] = cb.checked; });
-
   data.signatures = {
     customer: pads.customer.toDataURL(),
     execution: pads.execution.toDataURL(),
     service: pads.service.toDataURL()
   };
+  return data;
+}
 
-  const payload = { form_type: 'service', submitted_at: new Date().toISOString(), data: data };
-  const btn = e.submitter;
-  if (btn) btn.disabled = true;
-
-  try {
-    if (WEBHOOK_URL.includes('REPLACE_WITH')) {
-      console.log('[Dry run] Payload:', payload);
-    } else {
-      const res = await fetch(WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-    }
-    TF_markSubmitted('service');
-    lastPayload = payload;
-    document.getElementById('successBanner').classList.add('show');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  } catch (err) {
-    console.error(err);
-    TF_toast('שגיאה בשליחה - נסה שוב');
-    if (btn) btn.disabled = false;
-  }
-});
-
-// ----- PDF -----
-document.getElementById('downloadPdfBtn').addEventListener('click', () => {
-  if (!lastPayload) { TF_toast('אין נתונים ליצירת PDF'); return; }
-  const d = lastPayload.data;
-
+// ----- Build the TF_generatePDF() config for this form's data -----
+// @param {Object} d - a collectFormData()-shaped object
+// @param {boolean} isDraft - true = not yet submitted (shows a draft banner,
+//                            uses a DRAFT filename so it's never confused
+//                            with the final signed-off copy)
+function buildServicePdfConfig(d, isDraft) {
   const ynText = v => v === 'yes' ? 'כן' : (v === 'no' ? 'לא' : '—');
   const statusText = v => ({not_done:'לא בוצעה', ok:'תקין', findings:'ליקויים'})[v] || '—';
 
@@ -737,10 +696,11 @@ document.getElementById('downloadPdfBtn').addEventListener('click', () => {
     }
   }
 
-  TF_generatePDF({
+  return {
     title: 'טופס מסירת פרויקט לשירות',
     formNumber: '03 / 03',
-    filename: 'Telefire_Service_' + (d.project_number || 'handover') + '.pdf',
+    isDraft: !!isDraft,
+    filename: (isDraft ? 'Telefire_Service_DRAFT_' : 'Telefire_Service_') + (d.project_number || 'handover') + '.pdf',
     sections: [
       { title: 'פרטי הפרויקט', rows: [
         ['מס\' פרויקט:', d.project_number],
@@ -779,8 +739,76 @@ document.getElementById('downloadPdfBtn').addEventListener('click', () => {
       { label: 'נציג ביצוע', name: d.execution_signer_name, id: '', image: d.signatures.execution },
       { label: 'נציג שירות', name: d.service_signer_name, id: '', image: d.signatures.service }
     ]
-  }, function(ok) {
+  };
+}
+
+// ----- SUBMIT -----
+const WEBHOOK_URL = 'https://hook.eu2.make.com/REPLACE_WITH_YOUR_HANDOVER_WEBHOOK';
+let lastPayload = null;
+
+formEl.addEventListener('submit', async e => {
+  e.preventDefault();
+
+  // Validate names + IDs
+  const validation = TF_validateForm(formEl);
+  if (!validation.valid) {
+    TF_toast(validation.errors[0]);
+    return;
+  }
+
+  // Required signatures
+  const missing = [];
+  if (pads.customer.isEmpty()) missing.push('הלקוח');
+  if (pads.execution.isEmpty()) missing.push('נציג ביצוע');
+  if (pads.service.isEmpty()) missing.push('נציג שירות');
+  if (missing.length) {
+    TF_toast('יש להוסיף חתימות חובה: ' + missing.join(', '));
+    switchTab('t4');
+    return;
+  }
+
+  const data = collectFormData();
+  const payload = { form_type: 'service', submitted_at: new Date().toISOString(), data: data };
+  const btn = e.submitter;
+  if (btn) btn.disabled = true;
+
+  try {
+    if (WEBHOOK_URL.includes('REPLACE_WITH')) {
+      console.log('[Dry run] Payload:', payload);
+    } else {
+      const res = await fetch(WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+    }
+    TF_markSubmitted('service');
+    lastPayload = payload;
+    document.getElementById('successBanner').classList.add('show');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  } catch (err) {
+    console.error(err);
+    TF_toast('שגיאה בשליחה - נסה שוב');
+    if (btn) btn.disabled = false;
+  }
+});
+
+// ----- PDF: final copy (after submit) -----
+document.getElementById('downloadPdfBtn').addEventListener('click', () => {
+  if (!lastPayload) { TF_toast('אין נתונים ליצירת PDF'); return; }
+  const config = buildServicePdfConfig(lastPayload.data, false);
+  config.embedData = TF_buildProjectExport(['service']);
+  TF_generatePDF(config, function(ok) {
     TF_toast(ok ? 'PDF נוצר בהצלחה ✓' : 'שגיאה ביצירת PDF', ok ? 'success' : '');
+  });
+});
+
+// ----- PDF: anytime export "לרפרנטית" (works even if the form is incomplete) -----
+// Same PDF the technician already knows - the office referent's exact
+// data (fields, repeater rows, signatures) rides along inside the file.
+document.getElementById('exportProjectBtn').addEventListener('click', () => {
+  const data = collectFormData();
+  const config = buildServicePdfConfig(data, /* isDraft */ true);
+  config.embedData = TF_buildProjectExport(['service']);
+  TF_generatePDF(config, function(ok) {
+    TF_toast(ok ? 'הקובץ יוצא ✓ שלח אותו למשרד' : 'שגיאה ביצירת הקובץ', ok ? 'success' : '');
   });
 });
 </script>
