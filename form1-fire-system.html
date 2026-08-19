@@ -110,54 +110,48 @@
     <section class="card">
       <div class="card-title">חתימות</div>
 
-      <!-- Receiver 1 (required) -->
+      <!-- Receiver (single block - replaces the old "מקבל ראשי" / "מקבל שני" pair) -->
       <div class="signature-section">
         <span class="signature-label">
           <span>✍️</span>
-          <span>מקבל ראשי</span>
+          <span>מקבל</span>
         </span>
         <div class="fields">
           <div class="field">
             <label>שם המקבל <span class="req">*</span></label>
-            <input class="input" type="text" name="receiver1_name" required>
+            <input class="input" type="text" name="receiver_name" required>
           </div>
           <div class="field">
             <label>ת.ז</label>
-            <input class="input input-mono" type="text" name="receiver1_id" inputmode="numeric">
+            <input class="input input-mono" type="text" name="receiver_id" inputmode="numeric">
           </div>
         </div>
         <div class="signature-pad-wrap">
           <div class="pad-title">
             <span>חתימה</span>
-            <button class="signature-clear" data-target="receiver1" type="button">נקה חתימה</button>
+            <button class="signature-clear" data-target="receiver" type="button">נקה חתימה</button>
           </div>
-          <div class="signature-pad" data-name="receiver1"><span class="signature-placeholder">✒️ חתום כאן</span></div>
+          <div class="signature-pad" data-name="receiver"><span class="signature-placeholder">✒️ חתום כאן</span></div>
         </div>
       </div>
 
-      <!-- Receiver 2 (optional) -->
-      <div class="signature-section">
-        <span class="signature-label">
-          <span>✍️</span>
-          <span>מקבל שני</span>
-          <span class="optional">(אופציונלי)</span>
-        </span>
-        <div class="fields">
-          <div class="field">
-            <label>שם המקבל</label>
-            <input class="input" type="text" name="receiver2_name">
-          </div>
-          <div class="field">
-            <label>ת.ז</label>
-            <input class="input input-mono" type="text" name="receiver2_id" inputmode="numeric">
-          </div>
+      <!-- Receiving company + contact person (new fields, per updated paper form) -->
+      <div class="fields" style="margin-top:20px; padding-top:20px; border-top:1px dashed var(--border-strong);">
+        <div class="field">
+          <label>שם החברה <span class="req">*</span></label>
+          <input class="input" type="text" name="company_name" required>
         </div>
-        <div class="signature-pad-wrap">
-          <div class="pad-title">
-            <span>חתימה</span>
-            <button class="signature-clear" data-target="receiver2" type="button">נקה חתימה</button>
-          </div>
-          <div class="signature-pad" data-name="receiver2"><span class="signature-placeholder">✒️ חתום כאן (לא חובה)</span></div>
+        <div class="field">
+          <label>ח.פ. <span class="req">*</span></label>
+          <input class="input input-mono" type="text" name="company_reg_number" inputmode="numeric" required>
+        </div>
+        <div class="field">
+          <label>טלפון של איש קשר <span class="req">*</span></label>
+          <input class="input input-mono" type="tel" name="contact_phone" dir="ltr" style="text-align:right;" required>
+        </div>
+        <div class="field">
+          <label>מייל של איש קשר <span class="req">*</span></label>
+          <input class="input" type="email" name="contact_email" dir="ltr" style="text-align:right;" required>
         </div>
       </div>
 
@@ -226,11 +220,11 @@ const pads = TF_initSignatures();
 TF_prefillShared(['project_number', 'project_name', 'customer_name', 'handover_date', 'deliverer_name']);
 // receiver_email is available via TF_getShared().receiver_email for email sending (round 4)
 
-// receiver1_name gets the shared receiver_name
+// receiver_name gets the shared receiver_name
 (function() {
   const shared = TF_getShared();
-  const r1 = document.querySelector('[name="receiver1_name"]');
-  if (r1 && !r1.value && shared.receiver_name) r1.value = shared.receiver_name;
+  const r = document.querySelector('[name="receiver_name"]');
+  if (r && !r.value && shared.receiver_name) r.value = shared.receiver_name;
 })();
 
 // 3b. Restore draft (saved fields from previous visit) + start autosave
@@ -280,7 +274,7 @@ document.getElementById('tfForm').addEventListener('submit', async e => {
 
   // Required signatures
   const missing = [];
-  if (pads.receiver1.isEmpty()) missing.push('מקבל ראשי');
+  if (pads.receiver.isEmpty()) missing.push('מקבל');
   if (pads.deliverer.isEmpty()) missing.push('מוסר');
   if (missing.length) {
     TF_toast('יש להוסיף חתימות חובה: ' + missing.join(', '));
@@ -291,8 +285,7 @@ document.getElementById('tfForm').addEventListener('submit', async e => {
   const data = {};
   new FormData(form).forEach((v, k) => { data[k] = v; });
   data.signatures = {
-    receiver1: pads.receiver1.toDataURL(),
-    receiver2: pads.receiver2.toDataURL(),
+    receiver: pads.receiver.toDataURL(),
     deliverer: pads.deliverer.toDataURL()
   };
 
@@ -351,6 +344,15 @@ document.getElementById('downloadPdfBtn').addEventListener('click', () => {
         ]
       },
       {
+        title: 'פרטי חברה מקבלת ואיש קשר',
+        rows: [
+          ['שם החברה:', d.company_name],
+          ['ח.פ.:', d.company_reg_number],
+          ['טלפון של איש קשר:', d.contact_phone],
+          ['מייל של איש קשר:', d.contact_email]
+        ]
+      },
+      {
         title: 'הצהרת קבלה',
         paragraphs: [
           'הנני מאשר קבלת הפרויקט לאחר ביקורת. כל ההערות והליקויים יתוקנו בהתאם להסכם האחריות.',
@@ -364,8 +366,7 @@ document.getElementById('downloadPdfBtn').addEventListener('click', () => {
       }
     ],
     signatures: [
-      { label: 'מקבל ראשי', name: d.receiver1_name, id: d.receiver1_id, image: d.signatures.receiver1 },
-      { label: 'מקבל שני', name: d.receiver2_name, id: d.receiver2_id, image: d.signatures.receiver2 },
+      { label: 'מקבל', name: d.receiver_name, id: d.receiver_id, image: d.signatures.receiver },
       { label: 'מוסר (נציג טלפייר)', name: d.deliverer_name, id: '', image: d.signatures.deliverer }
     ]
   });
