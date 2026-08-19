@@ -183,14 +183,17 @@
    * Call once after the DOM is ready.
    */
   window.TF_initValidators = function() {
-    // ID fields: receiver1_id, receiver2_id, service_customer_id, etc.
+    // ID fields: receiver_id, service_customer_id, etc.
+    // NOTE: company_reg_number (ח.פ.) is deliberately NOT named "*_id" - a
+    // company registration number doesn't follow the personal-ID checksum,
+    // so it must not get auto-attached to TF_attachIDValidation below.
     document.querySelectorAll('input[name*="_id"]').forEach(input => {
       window.TF_attachIDValidation(input);
     });
 
     // PERSON name fields -> full name (first + last) required
-    const personFields = ['receiver1_name', 'receiver2_name', 'deliverer_name',
-                          'receiver_name', 'service_contact_name', 'project_manager',
+    const personFields = ['receiver_name', 'deliverer_name',
+                          'service_contact_name', 'project_manager',
                           'service_rep_name', 'customer_signer_name',
                           'execution_signer_name', 'service_signer_name'];
     personFields.forEach(name => {
@@ -200,7 +203,8 @@
     });
 
     // COMPANY/customer name fields -> loose validation (3+ letters, can be one word)
-    const looseFields = ['customer_name', 'project_name', 'service_customer_name',
+    const looseFields = ['customer_name', 'project_name', 'company_name',
+                         'service_customer_name',
                          'approved_lab_name', 'lab_name', 'integration_lab_name'];
     looseFields.forEach(name => {
       document.querySelectorAll('input[name="' + name + '"]').forEach(input => {
@@ -219,8 +223,8 @@
     const errors = [];
 
     // Person name fields: must be full name (first + last)
-    const personFields = ['receiver1_name', 'receiver2_name', 'deliverer_name',
-                          'receiver_name', 'service_contact_name', 'project_manager',
+    const personFields = ['receiver_name', 'deliverer_name',
+                          'service_contact_name', 'project_manager',
                           'service_rep_name', 'customer_signer_name',
                           'execution_signer_name', 'service_signer_name'];
     personFields.forEach(name => {
@@ -235,7 +239,8 @@
     });
 
     // Company/loose name fields: 3+ letters
-    const looseFields = ['customer_name', 'project_name', 'service_customer_name',
+    const looseFields = ['customer_name', 'project_name', 'company_name',
+                         'service_customer_name',
                          'approved_lab_name', 'lab_name', 'integration_lab_name'];
     looseFields.forEach(name => {
       form.querySelectorAll('input[name="' + name + '"]').forEach(input => {
