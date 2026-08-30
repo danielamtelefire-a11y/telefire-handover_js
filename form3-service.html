@@ -287,9 +287,10 @@
           </div>
         </div>
         <div class="system-card-body">
-          <div class="fields">
-            <div class="field"><label>דגם המערכת</label><input class="input input-mono" type="text" name="intercom_model"></div>
-            <div class="field"><label>קבלן מבצע (שם וטלפון)</label><input class="input" type="text" name="intercom_contractor"></div>
+          <div id="intercomRows"></div>
+          <button type="button" class="btn-add-mini" data-add="intercom">+ הוסף יחידה</button>
+          <div class="fields" style="margin-top:14px;">
+            <div class="field field--full"><label>קבלן מבצע (שם וטלפון)</label><input class="input" type="text" name="intercom_contractor"></div>
           </div>
         </div>
       </div>
@@ -559,6 +560,9 @@ document.querySelectorAll('[data-toggle]').forEach(input => {
 });
 
 // ----- PANEL REPEATERS -----
+// Generic "model + serial number" repeater, used by any system that can
+// have more than one physical unit (fire/PA control panels, intercom
+// units, ...). Default is one row; "+" adds more, "x" removes one.
 function addPanel(type, model, serial) {
   const container = document.getElementById(type + 'Rows');
   const idx = container.children.length + 1;
@@ -566,8 +570,8 @@ function addPanel(type, model, serial) {
   div.className = 'panel-row';
   div.innerHTML =
     '<div class="num">' + idx + '</div>' +
-    '<div class="field"><label>דגם רכזת</label><input class="input input-mono" type="text" name="' + type + '_model[]" placeholder="ADR-7000"></div>' +
-    '<div class="field"><label>מס\' סידורי</label><input class="input input-mono" type="text" name="' + type + '_serial[]" placeholder="7K-2026"></div>' +
+    '<div class="field"><label>דגם</label><input class="input input-mono" type="text" name="' + type + '_model[]"></div>' +
+    '<div class="field"><label>מס\' סידורי</label><input class="input input-mono" type="text" name="' + type + '_serial[]"></div>' +
     '<button type="button" class="btn-remove" title="הסר">×</button>';
   div.querySelector('.btn-remove').addEventListener('click', () => {
     div.remove();
@@ -581,9 +585,10 @@ function addPanel(type, model, serial) {
 document.querySelectorAll('[data-add]').forEach(btn => {
   btn.addEventListener('click', () => { addPanel(btn.dataset.add); saveFormDraft(); });
 });
-// Start with one row each
-addPanel('fire');
-addPanel('pa');
+// Start with one row each (basic case = a single unit; "+" is there for
+// projects with more than one panel/unit of the same kind).
+const REPEATER_TYPES = ['fire', 'pa', 'intercom'];
+REPEATER_TYPES.forEach(type => addPanel(type));
 
 // ----- PREFILL shared -----
 TF_prefillShared(['project_number', 'project_name', 'customer_name', 'handover_date']);
@@ -593,7 +598,7 @@ TF_prefillShared(['project_number', 'project_name', 'customer_name', 'handover_d
   let draft;
   try { draft = JSON.parse(sessionStorage.getItem('tf_handover_draft_' + FORM_TYPE) || '{}'); }
   catch (_) { return; }
-  ['fire', 'pa'].forEach(type => {
+  REPEATER_TYPES.forEach(type => {
     const models = draft[type + '_model'];
     // draft stores repeated fields; if more than 1 row was saved, add the extra rows
     if (Array.isArray(models) && models.length > 1) {
@@ -626,7 +631,7 @@ TF_initDataControls(FORM_TYPE, function() {
 // ----- VALIDATORS -----
 TF_initValidators();
 
-// ----- PROJECT DATA HANDOFF (referent workflow) -- NEW -----
+// ----- PROJECT DATA HANDOFF (referent workflow) -----
 // The office referent loads the technician's exported PDF straight on
 // this page (⬆️ טעינת קובץ מהשטח) - see shared/theme.js section 5 for
 // how the data travels invisibly inside that PDF.
@@ -669,7 +674,8 @@ function buildServicePdfConfig(d, isDraft) {
   const ynText = v => v === 'yes' ? 'כן' : (v === 'no' ? 'לא' : '—');
   const statusText = v => ({not_done:'לא בוצעה', ok:'תקין', findings:'ליקויים'})[v] || '—';
 
-  // Build systems summary (incl. control-panel rows for "yes" systems)
+  // Build systems summary (incl. unit rows for any "yes" system that has
+  // a model+serial repeater: fire, PA, intercom)
   const sysRows = [];
   function pushSystem(label, val, modelArr, serialArr) {
     sysRows.push([label, ynText(val)]);
@@ -681,7 +687,7 @@ function buildServicePdfConfig(d, isDraft) {
       const serial = (serials[i] || '').trim();
       if (!model && !serial) return; // skip empty repeater rows
       const val2 = (model || '—') + (serial ? '  |  מס\' סידורי: ' + serial : '');
-      sysRows.push(['    • רכזת ' + (i + 1) + ':', val2]);
+      sysRows.push(['    • יחידה ' + (i + 1) + ':', val2]);
     });
   }
   if (d.sys_fire) pushSystem('מערכת גילוי אש:', d.sys_fire, d.fire_model, d.fire_serial);
@@ -689,12 +695,7 @@ function buildServicePdfConfig(d, isDraft) {
   if (d.sys_smoke) sysRows.push(['פאנל ניהול עשן:', ynText(d.sys_smoke)]);
   if (d.sys_phone) sysRows.push(['טלפון כבאים:', ynText(d.sys_phone)]);
   if (d.sys_shelter) sysRows.push(['אינטרקום מחסה:', ynText(d.sys_shelter)]);
-  if (d.sys_intercom) {
-    sysRows.push(['מערכת אינטרקום:', ynText(d.sys_intercom)]);
-    if (d.sys_intercom === 'yes' && d.intercom_model && d.intercom_model.trim()) {
-      sysRows.push(['    • דגם:', d.intercom_model.trim()]);
-    }
-  }
+  if (d.sys_intercom) pushSystem('מערכת אינטרקום:', d.sys_intercom, d.intercom_model, d.intercom_serial);
 
   return {
     title: 'טופס מסירת פרויקט לשירות',
