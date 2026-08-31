@@ -448,12 +448,6 @@
       <div class="card-subtitle"><span class="icon">✍️</span><span>חתימות (חובה)</span></div>
       <div class="sig-cluster">
         <div class="sig-card">
-          <span class="signature-label">👤 הלקוח</span>
-          <input class="input" type="text" name="customer_signer_name" placeholder="שם הלקוח" style="margin-bottom:10px;">
-          <div class="signature-pad" data-name="customer"><span class="signature-placeholder">✒️ חתום כאן</span></div>
-          <button class="signature-clear" data-target="customer" type="button">נקה חתימה</button>
-        </div>
-        <div class="sig-card">
           <span class="signature-label">🔧 נציג ביצוע</span>
           <input class="input" type="text" name="execution_signer_name" placeholder="שם נציג ביצוע" style="margin-bottom:10px;">
           <div class="signature-pad" data-name="execution"><span class="signature-placeholder">✒️ חתום כאן</span></div>
@@ -526,7 +520,7 @@ function refreshTabBadges() {
     t1: ['project_number','project_name','customer_name','project_address','segment','handover_date'],
     t2: ['sys_fire','sys_pa','sys_smoke','sys_phone','fire_contractor','device_count'],
     t3: ['service_customer_name','service_contact_name','warranty_from','lab_status','integration_status'],
-    t4: ['customer_signer_name','execution_signer_name','service_signer_name','general_notes']
+    t4: ['execution_signer_name','service_signer_name','general_notes']
   };
   Object.keys(tabFields).forEach(tabId => {
     const hasData = tabFields[tabId].some(name => {
@@ -658,7 +652,6 @@ function collectFormData() {
   Object.keys(arrayKeys).forEach(k => { data[k] = arrayKeys[k]; });
   formEl.querySelectorAll('input[type="checkbox"]').forEach(cb => { if (cb.name) data[cb.name] = cb.checked; });
   data.signatures = {
-    customer: pads.customer.toDataURL(),
     execution: pads.execution.toDataURL(),
     service: pads.service.toDataURL()
   };
@@ -736,7 +729,6 @@ function buildServicePdfConfig(d, isDraft) {
       ], paragraphs: d.general_notes ? ['הערות: ' + d.general_notes] : [] }
     ],
     signatures: [
-      { label: 'הלקוח', name: d.customer_signer_name, id: '', image: d.signatures.customer },
       { label: 'נציג ביצוע', name: d.execution_signer_name, id: '', image: d.signatures.execution },
       { label: 'נציג שירות', name: d.service_signer_name, id: '', image: d.signatures.service }
     ]
@@ -759,7 +751,6 @@ formEl.addEventListener('submit', async e => {
 
   // Required signatures
   const missing = [];
-  if (pads.customer.isEmpty()) missing.push('הלקוח');
   if (pads.execution.isEmpty()) missing.push('נציג ביצוע');
   if (pads.service.isEmpty()) missing.push('נציג שירות');
   if (missing.length) {
