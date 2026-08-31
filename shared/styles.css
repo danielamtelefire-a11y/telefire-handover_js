@@ -434,13 +434,15 @@ html, body {
 }
 .signature-clear:hover { text-decoration: underline; }
 
-/* Signature cluster (3 side by side) - used in form 3 */
+/* Signature cluster - used in form 3. Was 3 cards side by side
+   (customer/execution/service); the customer card was removed, so
+   this is now a 2-card layout. */
 .sig-cluster {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 14px;
 }
-@media (max-width: 900px) { .sig-cluster { grid-template-columns: 1fr; } }
+@media (max-width: 700px) { .sig-cluster { grid-template-columns: 1fr; } }
 .sig-card {
   background: var(--input-bg-soft);
   border-radius: var(--radius-sm);
